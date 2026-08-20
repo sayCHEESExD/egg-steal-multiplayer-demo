@@ -1,44 +1,35 @@
-import { Room, Client, CloseCode } from "colyseus";
-import { MyRoomState } from "./schema/MyRoomState.js";
+import { Room, Client } from "@colyseus/core";
+import { MyRoomState, Player } from "./schema/MyRoomState";
 
-export class MyRoom extends Room {
-  maxClients = 4;
-  state = new MyRoomState();
-
-  messages = {
-    yourMessageType: (client: Client, message: any) => {
-      /**
-       * Handle "yourMessageType" message.
-       */
-      console.log(client.sessionId, "sent a message:", message);
-    }
-  }
+export class MyRoom extends Room<MyRoomState> {
+  maxClients = 10;
 
   onCreate (options: any) {
-    /**
-     * Called when a new room is created.
-     */
+    this.setState(new MyRoomState());
+
+    // We will listen for movement inputs from Unity later
+    this.onMessage("move", (client, data) => {
+        const player = this.state.players.get(client.sessionId);
+        if (player) {
+            player.x = data.x;
+            player.y = data.y;
+            player.z = data.z;
+        }
+    });
   }
 
   onJoin (client: Client, options: any) {
-    /**
-     * Called when a client joins the room.
-     */
     console.log(client.sessionId, "joined!");
+    
+    // Create a new player and add it to the state
+    const player = new Player();
+    this.state.players.set(client.sessionId, player);
   }
 
-  onLeave (client: Client, code: CloseCode) {
-    /**
-     * Called when a client leaves the room.
-     */
-    console.log(client.sessionId, "left!", code);
+  onLeave (client: Client, consented: boolean) {
+    console.log(client.sessionId, "left!");
+    
+    // Remove the player from the state
+    this.state.players.delete(client.sessionId);
   }
-
-  onDispose() {
-    /**
-     * Called when the room is disposed.
-     */
-    console.log("room", this.roomId, "disposing...");
-  }
-
 }
