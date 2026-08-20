@@ -1,0 +1,40 @@
+# ==========================================
+# Unity Client Rules
+# ==========================================
+client/[Ll]ibrary/
+client/[Tt]emp/
+client/[Oo]bj/
+client/[Bb]uild/
+client/[Bb]uilds/
+client/[Ll]ogs/
+client/[Uu]ser[Ss]ettings/
+client/[Mm]emoryCaptures/
+
+# Visual Studio / VS Code / Rider project files
+client/**/*.csproj
+client/**/*.unityproj
+client/**/*.sln
+client/**/*.suo
+client/**/*.user
+client/**/*.userprefs
+client/**/*.pidb
+client/**/*.booproj
+client/*.svd
+client/*.sublime-project
+
+# OS Generated
+.DS_Store
+Thumbs.db
+
+# ==========================================
+# Colyseus Node.js Server Rules
+# ==========================================
+server/node_modules/
+server/lib/
+server/dist/
+server/npm-debug.log*
+server/yarn-debug.log*
+server/yarn-error.log*
+server/.env
+server/.env.local
+server/.env.production
