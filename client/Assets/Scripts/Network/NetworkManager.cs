@@ -93,6 +93,19 @@ public class NetworkManager : MonoBehaviour
         if (playerPrefab != null)
         {
             GameObject newPlayer = Instantiate(playerPrefab, spawnPosition, Quaternion.identity);
+            
+            NetworkPlayer netPlayer = newPlayer.GetComponent<NetworkPlayer>();
+            if (netPlayer != null)
+            {
+                // Check if this newly spawned player's ID matches our client's ID
+                netPlayer.isLocalPlayer = (sessionId == room.SessionId);
+                netPlayer.serverState = player;
+            }
+            else
+            {
+                Debug.LogError("NetworkPlayer script is missing from the PlayerPrefab!");
+            }
+
             spawnedPlayers.Add(sessionId, newPlayer);
         }
         else
