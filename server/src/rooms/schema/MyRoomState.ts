@@ -1,14 +1,21 @@
 import { Schema, type, MapSchema } from "@colyseus/schema";
 
-// Define what data makes up a Player
 export class Player extends Schema {
     @type("number") x: number = 0;
     @type("number") y: number = 0;
     @type("number") z: number = 0;
+    @type("number") rotY: number = 0; // <-- NEW
 }
 
-// Define the overall room state
+export class Egg extends Schema {
+    @type("string") id: string = "";
+    @type("number") x: number = 0;
+    @type("number") y: number = 0;
+    @type("number") z: number = 0;
+    @type("string") carrierId: string = "";
+}
+
 export class MyRoomState extends Schema {
-    // A map (dictionary) of all players currently in the room
     @type({ map: Player }) players = new MapSchema<Player>();
+    @type({ map: Egg }) eggs = new MapSchema<Egg>();
 }
