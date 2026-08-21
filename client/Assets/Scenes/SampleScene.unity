@@ -4014,7 +4014,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 8d189edbf1ab0e0478e2ad7e665ffeda, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 10.1
+      value: 9.05
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 8d189edbf1ab0e0478e2ad7e665ffeda, type: 3}
       propertyPath: m_LocalPosition.z
@@ -4999,7 +4999,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerPrefab: {fileID: 795834380650059579, guid: 12b8e2ddb3f07e54facf33171b727e54, type: 3}
   eggPrefab: {fileID: 1790610903363645960, guid: 6d850fb60dad3a648b7e922b73a15432, type: 3}
-  guardPrefab: {fileID: 2070457094324943451, guid: e7c0299780dc68f43b1bf9408cda5658, type: 3}
+  guardPrefabs:
+  - {fileID: 2070457094324943451, guid: e7c0299780dc68f43b1bf9408cda5658, type: 3}
+  - {fileID: 1686241788036076065, guid: 258b1c1f240fb3b45b927bc5ec469e61, type: 3}
+  - {fileID: 3767190003989595784, guid: aa2890f742771b44fa7e4c8e6240302a, type: 3}
+  - {fileID: 4986388092273770443, guid: 9e7ff79774acf7e49968163e926913ed, type: 3}
+  - {fileID: 8750350032234272805, guid: f816b1cc717b63e4ebddc0e4f17582fa, type: 3}
+  - {fileID: 976067993669889608, guid: 5129a0c555cf364409f65eb3bf5d0551, type: 3}
+  - {fileID: 1906059078256984917, guid: 0ae194c5f223e18478b509fe15f0441d, type: 3}
+  - {fileID: 2017589919577331013, guid: a00a00616fc6a1a4882f71bf0e6dfdb0, type: 3}
+  petPrefab: {fileID: 2990804912935743692, guid: 0828c5b590ba1d64082422dcdc2fc6a7, type: 3}
 --- !u!4 &742985158
 Transform:
   m_ObjectHideFlags: 0

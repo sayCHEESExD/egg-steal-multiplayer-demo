@@ -22,7 +22,7 @@ ModelImporter:
     animationDoRetargetingWarnings: 0
     importAnimatedCustomProperties: 0
     importConstraints: 0
-    animationCompression: 1
+    animationCompression: 3
     animationRotationError: 0.5
     animationPositionError: 0.5
     animationScaleError: 0.5
@@ -80,7 +80,87 @@ ModelImporter:
   humanDescription:
     serializedVersion: 3
     human: []
-    skeleton: []
+    skeleton:
+    - name: player(Clone)
+      parentName: 
+      position: {x: 0, y: 0, z: 0}
+      rotation: {x: 0, y: 0, z: 0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Cube.010
+      parentName: player(Clone)
+      position: {x: -0, y: 0, z: 0}
+      rotation: {x: -0.7071068, y: 0, z: -0, w: 0.7071067}
+      scale: {x: 50, y: 50, z: 50}
+    - name: Armature.001
+      parentName: player(Clone)
+      position: {x: -0, y: 0, z: 0}
+      rotation: {x: -0.7071068, y: 0, z: -0, w: 0.7071067}
+      scale: {x: 50, y: 50, z: 50}
+    - name: Rig1
+      parentName: Armature.001
+      position: {x: -0, y: 0, z: 0}
+      rotation: {x: 0.7071068, y: 0, z: -0, w: 0.7071067}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Spine1
+      parentName: Rig1
+      position: {x: -0, y: 0.024, z: 0}
+      rotation: {x: 0, y: -0.00000011920929, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Spine2
+      parentName: Spine1
+      position: {x: -0, y: 0.017999997, z: 0}
+      rotation: {x: 0, y: 7.1054274e-15, z: -0, w: 1}
+      scale: {x: 1, y: 0.99999994, z: 1}
+    - name: Neck1
+      parentName: Spine2
+      position: {x: -0, y: 0.006000004, z: 0}
+      rotation: {x: 0, y: 0.00000011920928, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: ArmL1
+      parentName: Spine2
+      position: {x: -0.019999998, y: 0.006000004, z: 0.004000005}
+      rotation: {x: 0.56285864, y: -0.42800745, z: 0.5628582, w: 0.42800757}
+      scale: {x: 1, y: 1, z: 1}
+    - name: ArmL2
+      parentName: ArmL1
+      position: {x: 1.984148e-11, y: 0.012, z: -1.7484565e-10}
+      rotation: {x: -8.594679e-17, y: 0.7882053, z: 8.594679e-17, w: 0.61541235}
+      scale: {x: 1, y: 1, z: 1}
+    - name: ArmR1
+      parentName: Spine2
+      position: {x: 0.02, y: 0.006000004, z: 0.003999995}
+      rotation: {x: 0.5628587, y: 0.42800772, z: 0.56285816, w: -0.42800733}
+      scale: {x: 1, y: 1, z: 1}
+    - name: ArmR2
+      parentName: ArmR1
+      position: {x: -1.9845174e-11, y: 0.012, z: -4.1326387e-10}
+      rotation: {x: 0, y: 0.61541176, z: -0, w: 0.78820586}
+      scale: {x: 1, y: 1, z: 1}
+    - name: LegR1
+      parentName: Rig1
+      position: {x: 0.006, y: 0.024, z: 0}
+      rotation: {x: 0.7071068, y: 0.00000003090862, z: 0.70710677, w: -0.00000003090862}
+      scale: {x: 1, y: 0.99999994, z: 1}
+    - name: LegR2
+      parentName: LegR1
+      position: {x: -0, y: 0.012, z: 0}
+      rotation: {x: 0, y: -0.000000015893256, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: LegL1
+      parentName: Rig1
+      position: {x: -0.006, y: 0.024, z: 0}
+      rotation: {x: 0.7071068, y: 0.00000003090862, z: 0.70710677, w: -0.00000003090862}
+      scale: {x: 1, y: 0.99999994, z: 1}
+    - name: LegL2
+      parentName: LegL1
+      position: {x: -0, y: 0.012, z: 0}
+      rotation: {x: 0, y: -0.000000015893256, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Cube.011
+      parentName: player(Clone)
+      position: {x: -0, y: 0, z: 0}
+      rotation: {x: -0.7071068, y: 0, z: -0, w: 0.7071067}
+      scale: {x: 50, y: 50, z: 50}
     armTwist: 0.5
     foreArmTwist: 0.5
     upperLegTwist: 0.5
@@ -91,13 +171,13 @@ ModelImporter:
     globalScale: 1
     rootMotionBoneName: 
     hasTranslationDoF: 0
-    hasExtraRoot: 0
+    hasExtraRoot: 1
     skeletonHasParents: 1
   lastHumanDescriptionAvatarSource: {instanceID: 0}
   autoGenerateAvatarMappingIfUnspecified: 1
   animationType: 2
   humanoidOversampling: 1
-  avatarSetup: 0
+  avatarSetup: 1
   addHumanoidExtraRootOnlyWhenUsingAvatar: 1
   importBlendShapeDeformPercent: 1
   remapMaterialsIfMaterialImportModeIsNone: 0

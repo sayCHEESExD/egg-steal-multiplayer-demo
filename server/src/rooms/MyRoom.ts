@@ -1,5 +1,5 @@
 import { Room, Client } from "@colyseus/core";
-import { MyRoomState, Player, Egg, Guard } from "./schema/MyRoomState";
+import { MyRoomState, Player, Egg, Guard, Pet } from "./schema/MyRoomState";
 
 export class MyRoom extends Room<MyRoomState> {
   maxClients = 4;
@@ -39,6 +39,7 @@ export class MyRoom extends Room<MyRoomState> {
         guard.z = centerZ;
         guard.baseZ = centerZ;
         guard.speed = 3.0 + (index * 1.5); // Speed increases per biome
+        guard.biomeIndex = index;
         this.state.guards.set("guard_" + index, guard);
     });
 
@@ -72,6 +73,7 @@ export class MyRoom extends Room<MyRoomState> {
     });
 
     this.onMessage("deliver_egg", (client, data) => {
+        console.log(`[DELIVERY] Received request from ${client.sessionId}`);
         const player = this.state.players.get(client.sessionId);
         if (!player) return;
 
@@ -84,17 +86,24 @@ export class MyRoom extends Room<MyRoomState> {
             const myBase = this.basePositions[player.baseIndex];
             const dx = player.x - myBase.x;
             const dz = player.z - myBase.z;
+            const dist = Math.sqrt(dx * dx + dz * dz);
+            
+            console.log(`[DELIVERY] Player distance to base center: ${dist.toFixed(2)} meters`);
 
-            if (Math.sqrt(dx * dx + dz * dz) < 8.0) { // Increased delivery radius slightly for enclosures
+            if (dist < 20.0) { 
+                console.log(`[DELIVERY] ACCEPTED! Egg ${carriedEgg.id} is now hatching.`);
                 carriedEgg.state = 2; 
                 carriedEgg.carrierId = "";
                 carriedEgg.ownerId = client.sessionId;
                 carriedEgg.hatchProgress = 5000;
                 
-                // Place inside enclosure
                 carriedEgg.x = myBase.x;
                 carriedEgg.z = myBase.z;
+            } else {
+                console.log(`[DELIVERY] DENIED! Player is too far from base (${dist.toFixed(2)} > 20.0)`);
             }
+        } else {
+            console.log(`[DELIVERY] DENIED! Player is not carrying an egg.`);
         }
     });
 
@@ -105,22 +114,48 @@ export class MyRoom extends Room<MyRoomState> {
 
   updateGame(deltaTime: number) {
       // 1. Process Hatching Eggs
+      // 1. Process Hatching Eggs
       this.state.eggs.forEach(egg => {
           if (egg.state === 2) {
               egg.hatchProgress -= deltaTime;
+              
               if (egg.hatchProgress <= 0) {
+                  console.log(`[HATCH] Timer finished for egg: ${egg.id}`);
+                  
                   const player = this.state.players.get(egg.ownerId);
-                  if (player) player.score += 1;
+                  
+                  if (player) {
+                      player.score += 1;
+                      
+                      const pet = new Pet();
+                      pet.id = "pet_" + Date.now();
+                      pet.ownerId = egg.ownerId;
+                      
+                      const myBase = this.basePositions[player.baseIndex];
+                      pet.x = myBase.x; 
+                      pet.y = 2.0; // Raised to 2.0 so it drops/floats visibly!
+                      pet.z = myBase.z;
+                      
+                      this.state.pets.set(pet.id, pet);
+                      console.log(`[HATCH] SUCCESS! Created Pet ${pet.id} at X:${pet.x}, Z:${pet.z}`);
+                  } else {
+                      console.log(`[HATCH ERROR] Could not find player with ID: ${egg.ownerId}`);
+                  }
 
-                  // Find original biome center based on ID (simplified logic)
-                  const idNum = parseInt(egg.id.split('_')[1]);
-                  const biomeIndex = Math.floor(idNum / 3);
-                  const centerZ = this.biomeCenters[biomeIndex];
+                  // Reset the egg back to its original biome for the next cycle
+                  try {
+                      const idNum = parseInt(egg.id.split('_')[1]);
+                      const biomeIndex = Math.floor(idNum / 3);
+                      const centerZ = this.biomeCenters[biomeIndex] || 100;
 
-                  egg.state = 0;
-                  egg.ownerId = "";
-                  egg.x = (Math.random() * 40) - 20;
-                  egg.z = centerZ + ((Math.random() * 40) - 20);
+                      egg.state = 0;
+                      egg.ownerId = "";
+                      egg.x = (Math.random() * 40) - 20;
+                      egg.z = centerZ + ((Math.random() * 40) - 20);
+                      console.log(`[HATCH] Egg ${egg.id} reset to biome.`);
+                  } catch (e) {
+                      console.log(`[HATCH ERROR] Failed to reset egg: ${e.message}`);
+                  }
               }
           }
       });

@@ -9,4 +9,5 @@ public partial class Guard : Schema
     [Type(4, "string")] public string targetId = "";
     [Type(5, "number")] public float baseZ = 0;
     [Type(6, "number")] public float speed = 0;
+    [Type(7, "number")] public float biomeIndex = 0;
 }

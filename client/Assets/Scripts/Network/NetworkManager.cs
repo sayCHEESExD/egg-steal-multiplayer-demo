@@ -14,11 +14,13 @@ public class NetworkManager : MonoBehaviour
     [Header("Spawning")]
     public GameObject playerPrefab;
     public GameObject eggPrefab;
-    public GameObject guardPrefab;
+    public GameObject[] guardPrefabs;
+    public GameObject petPrefab;
     
     public Dictionary<string, GameObject> spawnedPlayers { get; private set; } = new Dictionary<string, GameObject>();
     public Dictionary<string, GameObject> spawnedEggs { get; private set; } = new Dictionary<string, GameObject>();
     public Dictionary<string, GameObject> spawnedGuards { get; private set; } = new Dictionary<string, GameObject>();
+    public Dictionary<string, GameObject> spawnedPets { get; private set; } = new Dictionary<string, GameObject>();
 
     private void Awake()
     {
@@ -88,6 +90,17 @@ public class NetworkManager : MonoBehaviour
             }
         });
 
+        // --- PETS (NEW) ---
+        callbacks.OnAdd(state => state.pets, (string petId, Pet pet) => SpawnPet(petId, pet));
+        callbacks.OnRemove(state => state.pets, (string petId, Pet pet) =>
+        {
+            if (spawnedPets.TryGetValue(petId, out GameObject petObject))
+            {
+                Destroy(petObject);
+                spawnedPets.Remove(petId);
+            }
+        });
+
         // --- INITIAL STATE ---
         room.OnStateChange += (state, isFirstState) =>
         {
@@ -96,6 +109,7 @@ public class NetworkManager : MonoBehaviour
                 state.players.ForEach((sessionId, player) => SpawnPlayer(sessionId, player));
                 state.eggs.ForEach((eggId, egg) => SpawnEgg(eggId, egg));
                 state.guards.ForEach((guardId, guard) => SpawnGuard(guardId, guard));
+                state.pets.ForEach((petId, pet) => SpawnPet(petId, pet));
             }
         };
     }
@@ -138,19 +152,60 @@ public class NetworkManager : MonoBehaviour
         if (spawnedGuards.ContainsKey(guardId)) return;
 
         Vector3 spawnPosition = new Vector3(guard.x, guard.y, guard.z);
-        if (guardPrefab != null)
+        int bIndex = (int)guard.biomeIndex;
+
+        // Select correct prefab, fallback to index 0 if missing
+        GameObject prefabToUse = null;
+        if (guardPrefabs != null && guardPrefabs.Length > 0)
         {
-            GameObject newGuard = Instantiate(guardPrefab, spawnPosition, Quaternion.identity);
+            prefabToUse = (bIndex >= 0 && bIndex < guardPrefabs.Length) 
+                ? guardPrefabs[bIndex] 
+                : guardPrefabs[0];
+        }
+
+        if (prefabToUse != null)
+        {
+            GameObject newGuard = Instantiate(prefabToUse, spawnPosition, Quaternion.identity);
             NetworkGuard netGuard = newGuard.GetComponent<NetworkGuard>();
-            
             if (netGuard == null) netGuard = newGuard.AddComponent<NetworkGuard>();
-            
             netGuard.serverState = guard;
             spawnedGuards.Add(guardId, newGuard);
         }
     }
 
-    // --- MISSING HELPER RE-ADDED ---
+    // --- SPPAWN PET LOGIC ---
+    private void SpawnPet(string petId, Pet pet)
+    {
+        if (spawnedPets.ContainsKey(petId)) return;
+        
+        Debug.Log($"Client received Pet: {petId} at {pet.x}, {pet.y}, {pet.z}");
+
+        Vector3 spawnPosition = new Vector3(pet.x, pet.y, pet.z);
+        if (petPrefab != null)
+        {
+            GameObject newPet = Instantiate(petPrefab, spawnPosition, Quaternion.identity);
+            NetworkPet netPet = newPet.AddComponent<NetworkPet>();
+            netPet.serverState = pet;
+            spawnedPets.Add(petId, newPet);
+        }
+    }
+
+    private void Update()
+    {
+        if (room != null && room.State != null && room.State.pets != null)
+        {
+            // Forcefully catch any pets that the event listeners missed
+            room.State.pets.ForEach((petId, pet) => 
+            {
+                if (!spawnedPets.ContainsKey(petId))
+                {
+                    Debug.LogWarning($"Callback missed! Force spawning pet: {petId}");
+                    SpawnPet(petId, pet);
+                }
+            });
+        }
+    }
+
     public GameObject GetSpawnedPlayer(string sessionId)
     {
         if (spawnedPlayers.TryGetValue(sessionId, out GameObject playerObj))
