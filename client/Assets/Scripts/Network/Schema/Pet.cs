@@ -8,4 +8,5 @@ public partial class Pet : Schema
     [Type(3, "number")] public float y = 0;
     [Type(4, "number")] public float z = 0;
     [Type(5, "number")] public float rotY = 0;
+    [Type(6, "number")] public float biomeIndex = 0;
 }

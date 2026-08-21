@@ -16,6 +16,8 @@ export class MyRoom extends Room<MyRoomState> {
   // Biome Z-centers (100 to 800)
   biomeCenters = [100, 200, 300, 400, 500, 600, 700, 800];
 
+  coinTimer: number = 0;
+
   onCreate (options: any) {
     this.setState(new MyRoomState());
 
@@ -29,6 +31,7 @@ export class MyRoom extends Room<MyRoomState> {
             egg.x = (Math.random() * 40) - 20; // Spread across X axis
             egg.y = 0.5;
             egg.z = centerZ + ((Math.random() * 40) - 20); // Spread within biome Z
+            egg.biomeIndex = index;
             this.state.eggs.set(egg.id, egg);
         }
 
@@ -110,6 +113,21 @@ export class MyRoom extends Room<MyRoomState> {
     this.setSimulationInterval((deltaTime) => {
         this.updateGame(deltaTime);
     }, 1000 / 30);
+
+    this.onMessage("upgrade_speed", (client, data) => {
+        const player = this.state.players.get(client.sessionId);
+        if (player) {
+            // Base cost is 10, doubles for each upgrade level past 5.0 speed
+            const currentLevel = player.moveSpeed - 5;
+            const cost = 10 * Math.pow(2, currentLevel); 
+
+            if (player.coins >= cost) {
+                player.coins -= cost;
+                player.moveSpeed += 1; // Increase speed by 1
+                console.log(`${client.sessionId} upgraded speed to ${player.moveSpeed}`);
+            }
+        }
+    });
   }
 
   updateGame(deltaTime: number) {
@@ -130,6 +148,7 @@ export class MyRoom extends Room<MyRoomState> {
                       const pet = new Pet();
                       pet.id = "pet_" + Date.now();
                       pet.ownerId = egg.ownerId;
+                      pet.biomeIndex = egg.biomeIndex;
                       
                       const myBase = this.basePositions[player.baseIndex];
                       pet.x = myBase.x; 
@@ -216,6 +235,50 @@ export class MyRoom extends Room<MyRoomState> {
                   guard.x += (dx / dist) * moveAmt;
                   guard.z += (dz / dist) * moveAmt;
                   guard.rotY = Math.atan2(dx, dz) * (180 / Math.PI);
+              }
+          }
+      });
+
+      // 3. Pet AI & Passive Income
+      // Give coins every 1000ms (1 second)
+      this.coinTimer += deltaTime;
+      const giveCoins = this.coinTimer >= 1000;
+      if (giveCoins) this.coinTimer -= 1000;
+
+      this.state.pets.forEach(pet => {
+          const owner = this.state.players.get(pet.ownerId);
+          if (owner) {
+              // Income generation based on rarity (biomeIndex)
+              if (giveCoins) {
+                  const income = 1 + (pet.biomeIndex * 2); // Biome 0 = 1 coin/sec, Biome 1 = 3 coins/sec, etc.
+                  owner.coins += income;
+              }
+
+              // Wandering AI within the pen
+              pet.idleTimer -= deltaTime;
+              if (pet.idleTimer <= 0) {
+                  const myBase = this.basePositions[owner.baseIndex];
+                  // Pick a random spot inside an 8x8 meter pen
+                  pet.targetX = myBase.x + (Math.random() * 8 - 4);
+                  pet.targetZ = myBase.z + (Math.random() * 8 - 4);
+                  pet.idleTimer = 2000 + Math.random() * 4000; // Wait 2 to 6 seconds before moving again
+              }
+
+              // Move towards target
+              const dx = pet.targetX - pet.x;
+              const dz = pet.targetZ - pet.z;
+              const dist = Math.sqrt(dx * dx + dz * dz);
+              
+              if (dist > 0.1) {
+                  const moveAmt = 1.5 * (deltaTime / 1000); // Walk speed
+                  if (moveAmt > dist) {
+                      pet.x = pet.targetX;
+                      pet.z = pet.targetZ;
+                  } else {
+                      pet.x += (dx / dist) * moveAmt;
+                      pet.z += (dz / dist) * moveAmt;
+                      pet.rotY = Math.atan2(dx, dz) * (180 / Math.PI);
+                  }
               }
           }
       });

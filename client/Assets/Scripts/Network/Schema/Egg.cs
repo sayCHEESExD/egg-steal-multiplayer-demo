@@ -10,4 +10,5 @@ public partial class Egg : Schema
     [Type(5, "number")] public float state = 0;
     [Type(6, "number")] public float hatchProgress = 0;
     [Type(7, "string")] public string ownerId = "";
+    [Type(8, "number")] public float biomeIndex = 0;
 }

@@ -7,6 +7,8 @@ export class Player extends Schema {
     @type("number") rotY: number = 0;
     @type("number") baseIndex: number = 0;
     @type("number") score: number = 0;
+    @type("number") coins: number = 0;
+    @type("number") moveSpeed: number = 5.0;
 }
 
 export class Egg extends Schema {
@@ -18,6 +20,7 @@ export class Egg extends Schema {
     @type("number") state: number = 0;
     @type("number") hatchProgress: number = 0;
     @type("string") ownerId: string = "";
+    @type("number") biomeIndex: number = 0;
 }
 
 export class Guard extends Schema {
@@ -38,6 +41,12 @@ export class Pet extends Schema {
     @type("number") y: number = 0;
     @type("number") z: number = 0;
     @type("number") rotY: number = 0;
+    @type("number") biomeIndex: number = 0;
+    
+    // Non-synced properties for server-side AI logic
+    targetX: number = 0;
+    targetZ: number = 0;
+    idleTimer: number = 0;
 }
 
 export class MyRoomState extends Schema {

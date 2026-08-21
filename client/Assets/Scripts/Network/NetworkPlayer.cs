@@ -4,8 +4,8 @@ using Colyseus.Schema;
 public class NetworkPlayer : MonoBehaviour
 {
     [Header("Settings")]
-    public float moveSpeed = 5f;
     public float rotationSpeed = 15f;
+    // Removed moveSpeed - it is now controlled by the server!
     
     [HideInInspector] public bool isLocalPlayer = false;
     [HideInInspector] public Player serverState;
@@ -23,6 +23,13 @@ public class NetworkPlayer : MonoBehaviour
         if (isLocalPlayer)
         {
             HandleLocalMovement();
+            HandleUpgrades();
+            
+            // Sync UI with server state
+            if (serverState != null && UIManager.Instance != null)
+            {
+                UIManager.Instance.UpdateCoins(serverState.coins);
+            }
         }
         else
         {
@@ -30,9 +37,17 @@ public class NetworkPlayer : MonoBehaviour
         }
     }
 
+    private void HandleUpgrades()
+    {
+        // Press 'U' to buy a speed upgrade
+        if (Input.GetKeyDown(KeyCode.U))
+        {
+            NetworkManager.Instance.room.Send("upgrade_speed");
+        }
+    }
+
     private void HandleLocalMovement()
     {
-        // 1. Movement
         float horizontal = Input.GetAxisRaw("Horizontal");
         float vertical = Input.GetAxisRaw("Vertical");
 
@@ -46,7 +61,10 @@ public class NetworkPlayer : MonoBehaviour
             camRight.Normalize();
 
             Vector3 moveDir = (camForward * vertical + camRight * horizontal).normalized;
-            transform.position += moveDir * moveSpeed * Time.deltaTime;
+            
+            // Use serverState.moveSpeed for local movement calculations
+            float currentSpeed = serverState != null ? serverState.moveSpeed : 5f;
+            transform.position += moveDir * currentSpeed * Time.deltaTime;
 
             Quaternion targetRotation = Quaternion.LookRotation(moveDir);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * rotationSpeed);
@@ -59,7 +77,6 @@ public class NetworkPlayer : MonoBehaviour
             });
         }
 
-        // 2. Interact (Pickup or Deliver)
         if (Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.Space))
         {
             bool isCarrying = false;
