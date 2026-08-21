@@ -14,10 +14,11 @@ public class NetworkManager : MonoBehaviour
     [Header("Spawning")]
     public GameObject playerPrefab;
     public GameObject eggPrefab;
+    public GameObject guardPrefab;
     
-    // Changed to public properties so other scripts can access them
     public Dictionary<string, GameObject> spawnedPlayers { get; private set; } = new Dictionary<string, GameObject>();
     public Dictionary<string, GameObject> spawnedEggs { get; private set; } = new Dictionary<string, GameObject>();
+    public Dictionary<string, GameObject> spawnedGuards { get; private set; } = new Dictionary<string, GameObject>();
 
     private void Awake()
     {
@@ -54,6 +55,7 @@ public class NetworkManager : MonoBehaviour
     {
         var callbacks = Colyseus.Schema.Callbacks.Get(room);
 
+        // --- PLAYERS ---
         callbacks.OnAdd(state => state.players, (string sessionId, Player player) => SpawnPlayer(sessionId, player));
         callbacks.OnRemove(state => state.players, (string sessionId, Player player) =>
         {
@@ -64,6 +66,7 @@ public class NetworkManager : MonoBehaviour
             }
         });
 
+        // --- EGGS ---
         callbacks.OnAdd(state => state.eggs, (string eggId, Egg egg) => SpawnEgg(eggId, egg));
         callbacks.OnRemove(state => state.eggs, (string eggId, Egg egg) =>
         {
@@ -74,12 +77,25 @@ public class NetworkManager : MonoBehaviour
             }
         });
 
+        // --- GUARDS ---
+        callbacks.OnAdd(state => state.guards, (string guardId, Guard guard) => SpawnGuard(guardId, guard));
+        callbacks.OnRemove(state => state.guards, (string guardId, Guard guard) =>
+        {
+            if (spawnedGuards.TryGetValue(guardId, out GameObject guardObject))
+            {
+                Destroy(guardObject);
+                spawnedGuards.Remove(guardId);
+            }
+        });
+
+        // --- INITIAL STATE ---
         room.OnStateChange += (state, isFirstState) =>
         {
             if (isFirstState)
             {
                 state.players.ForEach((sessionId, player) => SpawnPlayer(sessionId, player));
                 state.eggs.ForEach((eggId, egg) => SpawnEgg(eggId, egg));
+                state.guards.ForEach((guardId, guard) => SpawnGuard(guardId, guard));
             }
         };
     }
@@ -92,14 +108,12 @@ public class NetworkManager : MonoBehaviour
         if (playerPrefab != null)
         {
             GameObject newPlayer = Instantiate(playerPrefab, spawnPosition, Quaternion.identity);
-            
             NetworkPlayer netPlayer = newPlayer.GetComponent<NetworkPlayer>();
             if (netPlayer != null)
             {
                 netPlayer.isLocalPlayer = (sessionId == room.SessionId);
                 netPlayer.serverState = player;
             }
-
             spawnedPlayers.Add(sessionId, newPlayer);
         }
     }
@@ -112,17 +126,31 @@ public class NetworkManager : MonoBehaviour
         if (eggPrefab != null)
         {
             GameObject newEgg = Instantiate(eggPrefab, spawnPosition, Quaternion.identity);
-            
-            // --- NEW: Attach and setup NetworkEgg ---
             NetworkEgg netEgg = newEgg.AddComponent<NetworkEgg>();
             netEgg.serverState = egg;
             netEgg.eggId = eggId;
-            
             spawnedEggs.Add(eggId, newEgg);
         }
     }
 
-    // Helper method to let eggs find the player holding them
+    private void SpawnGuard(string guardId, Guard guard)
+    {
+        if (spawnedGuards.ContainsKey(guardId)) return;
+
+        Vector3 spawnPosition = new Vector3(guard.x, guard.y, guard.z);
+        if (guardPrefab != null)
+        {
+            GameObject newGuard = Instantiate(guardPrefab, spawnPosition, Quaternion.identity);
+            NetworkGuard netGuard = newGuard.GetComponent<NetworkGuard>();
+            
+            if (netGuard == null) netGuard = newGuard.AddComponent<NetworkGuard>();
+            
+            netGuard.serverState = guard;
+            spawnedGuards.Add(guardId, newGuard);
+        }
+    }
+
+    // --- MISSING HELPER RE-ADDED ---
     public GameObject GetSpawnedPlayer(string sessionId)
     {
         if (spawnedPlayers.TryGetValue(sessionId, out GameObject playerObj))

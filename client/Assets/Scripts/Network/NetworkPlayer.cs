@@ -32,15 +32,15 @@ public class NetworkPlayer : MonoBehaviour
 
     private void HandleLocalMovement()
     {
+        // 1. Movement
         float horizontal = Input.GetAxisRaw("Horizontal");
         float vertical = Input.GetAxisRaw("Vertical");
 
         if (horizontal != 0 || vertical != 0)
         {
-            // 1. Calculate movement relative to camera
             Vector3 camForward = Camera.main.transform.forward;
             Vector3 camRight = Camera.main.transform.right;
-            camForward.y = 0f; // Keep movement flat
+            camForward.y = 0f;
             camRight.y = 0f;
             camForward.Normalize();
             camRight.Normalize();
@@ -48,11 +48,9 @@ public class NetworkPlayer : MonoBehaviour
             Vector3 moveDir = (camForward * vertical + camRight * horizontal).normalized;
             transform.position += moveDir * moveSpeed * Time.deltaTime;
 
-            // 2. Rotate the player model to face the movement direction
             Quaternion targetRotation = Quaternion.LookRotation(moveDir);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * rotationSpeed);
 
-            // 3. Send position AND rotation to server
             NetworkManager.Instance.room.Send("move", new { 
                 x = transform.position.x, 
                 y = transform.position.y, 
@@ -61,20 +59,33 @@ public class NetworkPlayer : MonoBehaviour
             });
         }
 
+        // 2. Interact (Pickup or Deliver)
         if (Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.Space))
         {
-            TryPickupNearestEgg();
+            bool isCarrying = false;
+            foreach (var kvp in NetworkManager.Instance.spawnedEggs)
+            {
+                NetworkEgg e = kvp.Value.GetComponent<NetworkEgg>();
+                if (e != null && e.serverState.carrierId == NetworkManager.Instance.room.SessionId)
+                {
+                    isCarrying = true;
+                    break;
+                }
+            }
+
+            if (isCarrying)
+            {
+                NetworkManager.Instance.room.Send("deliver_egg");
+            }
+            else
+            {
+                TryPickupNearestEgg();
+            }
         }
     }
 
     private void TryPickupNearestEgg()
     {
-        foreach (var kvp in NetworkManager.Instance.spawnedEggs)
-        {
-            NetworkEgg e = kvp.Value.GetComponent<NetworkEgg>();
-            if (e != null && e.serverState.carrierId == NetworkManager.Instance.room.SessionId) return;
-        }
-
         float closestDistance = 3f; 
         string closestEggId = "";
 
@@ -104,11 +115,9 @@ public class NetworkPlayer : MonoBehaviour
     {
         if (serverState == null) return;
 
-        // Interpolate position
         Vector3 targetPosition = new Vector3(serverState.x, serverState.y, serverState.z);
         transform.position = Vector3.Lerp(transform.position, targetPosition, Time.deltaTime * 10f);
 
-        // Interpolate rotation
         Quaternion targetRotation = Quaternion.Euler(0, serverState.rotY, 0);
         transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 10f);
     }
