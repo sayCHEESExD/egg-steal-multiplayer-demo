@@ -196,9 +196,27 @@ public class NetworkManager : MonoBehaviour
         if (prefabToUse != null)
         {
             GameObject newPet = Instantiate(prefabToUse, spawnPosition, Quaternion.identity);
-            NetworkPet netPet = newPet.GetComponent<NetworkPet>();
-            netPet.serverState = pet;
+            
+            // 1. ADD TO DICTIONARY IMMEDIATELY
+            // This guarantees we never duplicate the model, even if the script below fails!
             spawnedPets.Add(petId, newPet);
+
+            // 2. Safely get or add the component
+            NetworkPet netPet = newPet.GetComponent<NetworkPet>();
+            if (netPet == null) 
+            {
+                netPet = newPet.AddComponent<NetworkPet>();
+            }
+            
+            // 3. Only apply server data if the component successfully attached
+            if (netPet != null)
+            {
+                netPet.serverState = pet;
+            }
+            else
+            {
+                Debug.LogError($"[Fix] Failed to attach NetworkPet script to {prefabToUse.name}!");
+            }
         }
     }
 

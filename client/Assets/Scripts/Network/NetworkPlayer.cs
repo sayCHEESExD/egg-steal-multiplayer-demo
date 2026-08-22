@@ -18,10 +18,10 @@ public class NetworkPlayer : MonoBehaviour
         "Desert",
         "Forest",
         "Snow",
+        "Volcano",
         "Abyss Ocean",
         "Prehistoric",
-        "Cosmic",
-        "Volcano" 
+        "Cosmic"
     };
     
     private void Start()
@@ -71,6 +71,9 @@ public class NetworkPlayer : MonoBehaviour
         {
             float inputMagnitude = new Vector2(horizontal, vertical).magnitude;
             animator.SetFloat("Speed", inputMagnitude);
+
+            float currentSpeed = serverState != null ? serverState.moveSpeed : 10f;
+            animator.speed = currentSpeed / 10f;
         }
         
         if (horizontal != 0 || vertical != 0)

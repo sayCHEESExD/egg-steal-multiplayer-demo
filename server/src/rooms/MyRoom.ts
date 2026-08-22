@@ -7,10 +7,10 @@ export class MyRoom extends Room<MyRoomState> {
   
   // Adjusted base positions for a Safe Zone centered at 0,0
   basePositions = [
-      { x: -15, z: -40 },
-      { x: -5, z: -40 },
-      { x: 5, z: -40 },
-      { x: 15, z: -40 }
+      { x: -70, z: -20 }, // Player 1
+      { x: -23, z: -20 }, // Player 2
+      { x: 23, z: -20 },  // Player 3
+      { x: 70, z: -20 }   // Player 4
   ];
 
   // Biome Z-centers (100 to 800)
@@ -41,7 +41,7 @@ export class MyRoom extends Room<MyRoomState> {
         guard.y = 0.5;
         guard.z = centerZ;
         guard.baseZ = centerZ;
-        guard.speed = 3.0 + (index * 1.5); // Speed increases per biome
+        guard.speed = 3.0 + (index * 1.5)*2; // Speed increases per biome
         guard.biomeIndex = index;
         this.state.guards.set("guard_" + index, guard);
     });
@@ -118,12 +118,12 @@ export class MyRoom extends Room<MyRoomState> {
         const player = this.state.players.get(client.sessionId);
         if (player) {
             // Base cost is 10, doubles for each upgrade level past 5.0 speed
-            const currentLevel = player.moveSpeed - 5;
+            const currentLevel = player.moveSpeed - 10;
             const cost = 10 * Math.pow(2, currentLevel); 
 
             if (player.coins >= cost) {
                 player.coins -= cost;
-                player.moveSpeed += 1; // Increase speed by 1
+                player.moveSpeed += 2; // Increase speed by 1
                 console.log(`${client.sessionId} upgraded speed to ${player.moveSpeed}`);
             }
         }
@@ -146,14 +146,16 @@ export class MyRoom extends Room<MyRoomState> {
                       player.score += 1;
                       
                       const pet = new Pet();
-                      pet.id = "pet_" + Date.now();
+                      pet.id = "pet_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
                       pet.ownerId = egg.ownerId;
-                      pet.biomeIndex = egg.biomeIndex;
+                      pet.biomeIndex = egg.biomeIndex; 
                       
                       const myBase = this.basePositions[player.baseIndex];
-                      pet.x = myBase.x; 
-                      pet.y = 2.0; // Raised to 2.0 so it drops/floats visibly!
-                      pet.z = myBase.z;
+                      
+                      // Spawn somewhere randomly within the new enclosure
+                      pet.x = myBase.x + (Math.random() * 20 - 10); 
+                      pet.y = 1.0; // <-- CHANGED: Matches the new Y=1 floor height
+                      pet.z = myBase.z + (Math.random() * 20 - 10);
                       
                       this.state.pets.set(pet.id, pet);
                       console.log(`[HATCH] SUCCESS! Created Pet ${pet.id} at X:${pet.x}, Z:${pet.z}`);
@@ -254,14 +256,16 @@ export class MyRoom extends Room<MyRoomState> {
                   owner.coins += income;
               }
 
-              // Wandering AI within the pen
+              // Wandering AI within the 40x40 pen
               pet.idleTimer -= deltaTime;
               if (pet.idleTimer <= 0) {
                   const myBase = this.basePositions[owner.baseIndex];
-                  // Pick a random spot inside an 8x8 meter pen
-                  pet.targetX = myBase.x + (Math.random() * 8 - 4);
-                  pet.targetZ = myBase.z + (Math.random() * 8 - 4);
-                  pet.idleTimer = 2000 + Math.random() * 4000; // Wait 2 to 6 seconds before moving again
+                  
+                  // Pick a random spot inside a 38x38 area (leaves a 1 unit margin)
+                  pet.targetX = myBase.x + (Math.random() * 38 - 19);
+                  pet.targetZ = myBase.z + (Math.random() * 38 - 19);
+                  
+                  pet.idleTimer = 2000 + Math.random() * 4000;
               }
 
               // Move towards target

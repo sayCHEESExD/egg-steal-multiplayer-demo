@@ -9,5 +9,5 @@ public partial class Player : Schema
     [Type(4, "number")] public float baseIndex = 0;
     [Type(5, "number")] public float score = 0;
     [Type(6, "number")] public float coins = 0;     
-    [Type(7, "number")] public float moveSpeed = 5f;
+    [Type(7, "number")] public float moveSpeed = 10f;
 }
