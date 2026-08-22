@@ -4,12 +4,26 @@ using Colyseus.Schema;
 public class NetworkPlayer : MonoBehaviour
 {
     [Header("Settings")]
+    public Animator animator;
     public float rotationSpeed = 15f;
     // Removed moveSpeed - it is now controlled by the server!
     
     [HideInInspector] public bool isLocalPlayer = false;
     [HideInInspector] public Player serverState;
 
+    private int lastBiomeIndex = -1;
+    
+    private readonly string[] biomeNames = {
+        "Plains",
+        "Desert",
+        "Forest",
+        "Snow",
+        "Abyss Ocean",
+        "Prehistoric",
+        "Cosmic",
+        "Volcano" 
+    };
+    
     private void Start()
     {
         if (isLocalPlayer)
@@ -28,8 +42,10 @@ public class NetworkPlayer : MonoBehaviour
             // Sync UI with server state
             if (serverState != null && UIManager.Instance != null)
             {
-                UIManager.Instance.UpdateCoins(serverState.coins);
+                UIManager.Instance.UpdateStats(serverState.coins, serverState.moveSpeed);
             }
+
+            CheckBiomePosition(); // <-- NEW
         }
         else
         {
@@ -51,6 +67,12 @@ public class NetworkPlayer : MonoBehaviour
         float horizontal = Input.GetAxisRaw("Horizontal");
         float vertical = Input.GetAxisRaw("Vertical");
 
+        if (animator != null)
+        {
+            float inputMagnitude = new Vector2(horizontal, vertical).magnitude;
+            animator.SetFloat("Speed", inputMagnitude);
+        }
+        
         if (horizontal != 0 || vertical != 0)
         {
             Vector3 camForward = Camera.main.transform.forward;
@@ -137,5 +159,26 @@ public class NetworkPlayer : MonoBehaviour
 
         Quaternion targetRotation = Quaternion.Euler(0, serverState.rotY, 0);
         transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 10f);
+    }
+
+    private void CheckBiomePosition()
+    {
+        // Biome centers are at Z = 100, 200, 300... 
+        // We shift by 50 so crossing Z=50 puts you in Biome 0, Z=150 puts you in Biome 1, etc.
+        int currentBiome = Mathf.FloorToInt((transform.position.z - 50f) / 100f);
+
+        if (currentBiome != lastBiomeIndex)
+        {
+            lastBiomeIndex = currentBiome;
+            
+            // Only show text if within valid biome ranges (0 to 7)
+            if (currentBiome >= 0 && currentBiome < biomeNames.Length)
+            {
+                if (UIManager.Instance != null)
+                {
+                    UIManager.Instance.ShowBiomeText(biomeNames[currentBiome]);
+                }
+            }
+        }
     }
 }

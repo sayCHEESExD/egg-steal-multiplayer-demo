@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 644474217881eaf42a35ef70cfe96d40
+guid: bd21feb992245374097694ca03048ef1
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
@@ -81,18 +81,18 @@ ModelImporter:
     serializedVersion: 3
     human: []
     skeleton:
-    - name: player(Clone)
+    - name: base_rig(Clone)
       parentName: 
       position: {x: 0, y: 0, z: 0}
       rotation: {x: 0, y: 0, z: 0, w: 1}
       scale: {x: 1, y: 1, z: 1}
     - name: Cube.010
-      parentName: player(Clone)
+      parentName: base_rig(Clone)
       position: {x: -0, y: 0, z: 0}
       rotation: {x: -0.7071068, y: 0, z: -0, w: 0.7071067}
       scale: {x: 50, y: 50, z: 50}
     - name: Armature.001
-      parentName: player(Clone)
+      parentName: base_rig(Clone)
       position: {x: -0, y: 0, z: 0}
       rotation: {x: -0.7071068, y: 0, z: -0, w: 0.7071067}
       scale: {x: 50, y: 50, z: 50}
@@ -157,7 +157,7 @@ ModelImporter:
       rotation: {x: 0, y: -0.000000015893256, z: -0, w: 1}
       scale: {x: 1, y: 1, z: 1}
     - name: Cube.011
-      parentName: player(Clone)
+      parentName: base_rig(Clone)
       position: {x: -0, y: 0, z: 0}
       rotation: {x: -0.7071068, y: 0, z: -0, w: 0.7071067}
       scale: {x: 50, y: 50, z: 50}
@@ -175,7 +175,7 @@ ModelImporter:
     skeletonHasParents: 1
   lastHumanDescriptionAvatarSource: {instanceID: 0}
   autoGenerateAvatarMappingIfUnspecified: 1
-  animationType: 3
+  animationType: 2
   humanoidOversampling: 1
   avatarSetup: 1
   addHumanoidExtraRootOnlyWhenUsingAvatar: 1
