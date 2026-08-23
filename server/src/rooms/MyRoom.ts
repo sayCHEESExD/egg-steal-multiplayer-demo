@@ -50,7 +50,7 @@ export class MyRoom extends Room<MyRoomState> {
         const player = this.state.players.get(client.sessionId);
         if (player) {
             player.x = data.x;
-            player.y = data.y;
+            
             player.z = data.z;
             if (data.rotY !== undefined) player.rotY = data.rotY;
         }
@@ -110,6 +110,16 @@ export class MyRoom extends Room<MyRoomState> {
         }
     });
 
+    this.onMessage("jump", (client, message) => {
+        const player = this.state.players.get(client.sessionId);
+        
+        // Simple ground check (assuming Y = 1.0 is your floor based on the enclosure setup)
+        if (player && player.y <= 0.1) { 
+            // Give the player upward velocity (adjust this number for jump height)
+            player['velocityY'] = 15; 
+        }
+    });
+
     this.setSimulationInterval((deltaTime) => {
         this.updateGame(deltaTime);
     }, 1000 / 30);
@@ -131,7 +141,21 @@ export class MyRoom extends Room<MyRoomState> {
   }
 
   updateGame(deltaTime: number) {
-      // 1. Process Hatching Eggs
+      // 0. Process Player Gravity and Jumping Physics
+      this.state.players.forEach(player => {
+          if (player['velocityY'] === undefined) {
+              player['velocityY'] = 0;
+          }
+
+          player['velocityY'] -= 40 * (deltaTime / 1000); 
+          player.y += player['velocityY'] * (deltaTime / 1000);
+
+          if (player.y < 0.0) {
+              player.y = 0.0;
+              player['velocityY'] = 0;
+          }
+      });
+
       // 1. Process Hatching Eggs
       this.state.eggs.forEach(egg => {
           if (egg.state === 2) {
@@ -154,7 +178,7 @@ export class MyRoom extends Room<MyRoomState> {
                       
                       // Spawn somewhere randomly within the new enclosure
                       pet.x = myBase.x + (Math.random() * 20 - 10); 
-                      pet.y = 1.0; // <-- CHANGED: Matches the new Y=1 floor height
+                      pet.y = 1.0; 
                       pet.z = myBase.z + (Math.random() * 20 - 10);
                       
                       this.state.pets.set(pet.id, pet);
@@ -181,62 +205,62 @@ export class MyRoom extends Room<MyRoomState> {
           }
       });
 
-      // Inside MyRoom.ts -> updateGame loop
-this.state.guards.forEach(guard => {
-    let targetPlayer: Player | null = null;
-    let stolenEgg: Egg | null = null;
+      // 2. Guard AI
+      this.state.guards.forEach(guard => {
+          let targetPlayer: Player | null = null;
+          let stolenEgg: Egg | null = null;
 
-    // 1. Find if an egg from this guard's biome is being carried
-    this.state.eggs.forEach((egg) => {
-        if (egg.biomeIndex === guard.biomeIndex && egg.state === 1 && egg.carrierId !== "") {
-            const p = this.state.players.get(egg.carrierId);
-            // Safe zone check: Players are safe if Z < 50
-            if (p && p.z >= 50) {
-                targetPlayer = p;
-                stolenEgg = egg;
-            }
-        }
-    });
+          // 1. Find if an egg from this guard's biome is being carried
+          this.state.eggs.forEach((egg) => {
+              if (egg.biomeIndex === guard.biomeIndex && egg.state === 1 && egg.carrierId !== "") {
+                  const p = this.state.players.get(egg.carrierId);
+                  // Safe zone check: Players are safe if Z < 50
+                  if (p && p.z >= 50) {
+                      targetPlayer = p;
+                      stolenEgg = egg;
+                  }
+              }
+          });
 
-    if (targetPlayer && stolenEgg) {
-        const dx = targetPlayer.x - guard.x;
-        const dz = targetPlayer.z - guard.z;
-        const dist = Math.sqrt(dx * dx + dz * dz);
-        
-        if (dist < 2.5) {
-            // Guard catches the player! Reset egg state to 0 so the client drops it.
-            stolenEgg.carrierId = "";
-            stolenEgg.state = 0; 
-            stolenEgg.x = (Math.random() * 40) - 20;
-            stolenEgg.y = 0.5;
-            // Calculate biome center (Z = 100, 200, 300, etc.)
-            stolenEgg.z = ((stolenEgg.biomeIndex + 1) * 100) + ((Math.random() * 40) - 20);
-        } else if (dist > 0.1) {
-            // Chase target
-            const moveAmt = guard.speed * (deltaTime / 1000);
-            guard.x += (dx / dist) * moveAmt;
-            guard.z += (dz / dist) * moveAmt;
-            guard.rotY = Math.atan2(dx, dz) * (180 / Math.PI);
-        }
-    } else {
-        // No target, return to biome center
-        const dx = 0 - guard.x; 
-        const dz = guard.baseZ - guard.z;
-        const dist = Math.sqrt(dx * dx + dz * dz);
-        
-        if (dist > 0.1) {
-            const moveAmt = guard.speed * (deltaTime / 1000);
-            if (moveAmt > dist) {
-                guard.x = 0;
-                guard.z = guard.baseZ;
-            } else {
-                guard.x += (dx / dist) * moveAmt;
-                guard.z += (dz / dist) * moveAmt;
-                guard.rotY = Math.atan2(dx, dz) * (180 / Math.PI);
-            }
-        }
-    }
-});
+          if (targetPlayer && stolenEgg) {
+              const dx = targetPlayer.x - guard.x;
+              const dz = targetPlayer.z - guard.z;
+              const dist = Math.sqrt(dx * dx + dz * dz);
+              
+              if (dist < 2.5) {
+                  // Guard catches the player! Reset egg state to 0 so the client drops it.
+                  stolenEgg.carrierId = "";
+                  stolenEgg.state = 0; 
+                  stolenEgg.x = (Math.random() * 40) - 20;
+                  stolenEgg.y = 0.5;
+                  // Calculate biome center (Z = 100, 200, 300, etc.)
+                  stolenEgg.z = ((stolenEgg.biomeIndex + 1) * 100) + ((Math.random() * 40) - 20);
+              } else if (dist > 0.1) {
+                  // Chase target
+                  const moveAmt = guard.speed * (deltaTime / 1000);
+                  guard.x += (dx / dist) * moveAmt;
+                  guard.z += (dz / dist) * moveAmt;
+                  guard.rotY = Math.atan2(dx, dz) * (180 / Math.PI);
+              }
+          } else {
+              // No target, return to biome center
+              const dx = 0 - guard.x; 
+              const dz = guard.baseZ - guard.z;
+              const dist = Math.sqrt(dx * dx + dz * dz);
+              
+              if (dist > 0.1) {
+                  const moveAmt = guard.speed * (deltaTime / 1000);
+                  if (moveAmt > dist) {
+                      guard.x = 0;
+                      guard.z = guard.baseZ;
+                  } else {
+                      guard.x += (dx / dist) * moveAmt;
+                      guard.z += (dz / dist) * moveAmt;
+                      guard.rotY = Math.atan2(dx, dz) * (180 / Math.PI);
+                  }
+              }
+          }
+      });
 
       // 3. Pet AI & Passive Income
       // Give coins every 1000ms (1 second)
@@ -249,7 +273,7 @@ this.state.guards.forEach(guard => {
           if (owner) {
               // Income generation based on rarity (biomeIndex)
               if (giveCoins) {
-                  const income = 1 + (pet.biomeIndex * 2); // Biome 0 = 1 coin/sec, Biome 1 = 3 coins/sec, etc.
+                  const income = 1 + (pet.biomeIndex * 2); 
                   owner.coins += income;
               }
 

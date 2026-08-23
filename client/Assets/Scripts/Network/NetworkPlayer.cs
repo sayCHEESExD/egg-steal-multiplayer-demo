@@ -6,7 +6,6 @@ public class NetworkPlayer : MonoBehaviour
     [Header("Settings")]
     public Animator animator;
     public float rotationSpeed = 15f;
-    // Removed moveSpeed - it is now controlled by the server!
     
     [HideInInspector] public bool isLocalPlayer = false;
     [HideInInspector] public Player serverState;
@@ -26,6 +25,10 @@ public class NetworkPlayer : MonoBehaviour
     
     private void Start()
     {
+        // Automatically fetch the Animator if the slot is empty
+        if (animator == null) animator = GetComponent<Animator>();
+        if (animator == null) animator = GetComponentInChildren<Animator>();
+
         if (isLocalPlayer)
         {
             Camera.main.GetComponent<CameraFollow>().target = this.transform;
@@ -39,13 +42,12 @@ public class NetworkPlayer : MonoBehaviour
             HandleLocalMovement();
             HandleUpgrades();
             
-            // Sync UI with server state
             if (serverState != null && UIManager.Instance != null)
             {
                 UIManager.Instance.UpdateStats(serverState.coins, serverState.moveSpeed);
             }
 
-            CheckBiomePosition(); // <-- NEW
+            CheckBiomePosition(); 
         }
         else
         {
@@ -55,7 +57,6 @@ public class NetworkPlayer : MonoBehaviour
 
     private void HandleUpgrades()
     {
-        // Press 'U' to buy a speed upgrade
         if (Input.GetKeyDown(KeyCode.U))
         {
             NetworkManager.Instance.room.Send("upgrade_speed");
@@ -67,15 +68,28 @@ public class NetworkPlayer : MonoBehaviour
         float horizontal = Input.GetAxisRaw("Horizontal");
         float vertical = Input.GetAxisRaw("Vertical");
 
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            NetworkManager.Instance.room.Send("jump");
+        }
+
+        // Local Animation
         if (animator != null)
         {
-            float inputMagnitude = new Vector2(horizontal, vertical).magnitude;
+            float inputMagnitude = new Vector2(horizontal, vertical).magnitude > 0.1f ? 1f : 0f;
             animator.SetFloat("Speed", inputMagnitude);
 
             float currentSpeed = serverState != null ? serverState.moveSpeed : 10f;
             animator.speed = currentSpeed / 10f;
         }
         
+        if (serverState != null)
+        {
+            Vector3 pos = transform.position;
+            pos.y = Mathf.Lerp(pos.y, serverState.y, Time.deltaTime * 15f);
+            transform.position = pos;
+        }
+
         if (horizontal != 0 || vertical != 0)
         {
             Vector3 camForward = Camera.main.transform.forward;
@@ -87,7 +101,6 @@ public class NetworkPlayer : MonoBehaviour
 
             Vector3 moveDir = (camForward * vertical + camRight * horizontal).normalized;
             
-            // Use serverState.moveSpeed for local movement calculations
             float currentSpeed = serverState != null ? serverState.moveSpeed : 5f;
             transform.position += moveDir * currentSpeed * Time.deltaTime;
 
@@ -102,7 +115,7 @@ public class NetworkPlayer : MonoBehaviour
             });
         }
 
-        if (Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.Space))
+        if (Input.GetKeyDown(KeyCode.E))
         {
             bool isCarrying = false;
             foreach (var kvp in NetworkManager.Instance.spawnedEggs)
@@ -158,6 +171,19 @@ public class NetworkPlayer : MonoBehaviour
         if (serverState == null) return;
 
         Vector3 targetPosition = new Vector3(serverState.x, serverState.y, serverState.z);
+        
+        // Remote Animation: Calculate distance to target to determine if they are walking
+        if (animator != null)
+        {
+            // Ignore Y axis so jumping doesn't trigger the walk animation
+            float distanceToTarget = Vector2.Distance(new Vector2(transform.position.x, transform.position.z), new Vector2(targetPosition.x, targetPosition.z));
+            float remoteSpeed = distanceToTarget > 0.1f ? 1f : 0f;
+            animator.SetFloat("Speed", remoteSpeed);
+
+            float currentSpeed = serverState.moveSpeed > 0 ? serverState.moveSpeed : 10f;
+            animator.speed = currentSpeed / 10f;
+        }
+
         transform.position = Vector3.Lerp(transform.position, targetPosition, Time.deltaTime * 10f);
 
         Quaternion targetRotation = Quaternion.Euler(0, serverState.rotY, 0);
@@ -166,15 +192,12 @@ public class NetworkPlayer : MonoBehaviour
 
     private void CheckBiomePosition()
     {
-        // Biome centers are at Z = 100, 200, 300... 
-        // We shift by 50 so crossing Z=50 puts you in Biome 0, Z=150 puts you in Biome 1, etc.
         int currentBiome = Mathf.FloorToInt((transform.position.z - 50f) / 100f);
 
         if (currentBiome != lastBiomeIndex)
         {
             lastBiomeIndex = currentBiome;
             
-            // Only show text if within valid biome ranges (0 to 7)
             if (currentBiome >= 0 && currentBiome < biomeNames.Length)
             {
                 if (UIManager.Instance != null)

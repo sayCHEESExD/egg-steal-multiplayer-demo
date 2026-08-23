@@ -45,7 +45,8 @@ public class NetworkManager : MonoBehaviour
         try
         {
             room = await client.JoinOrCreate<MyRoomState>("my_room");
-            RegisterStateListeners();
+            // By-passing Colyseus OnAdd/OnRemove listener syntax completely 
+            // to avoid SDK version compilation conflicts.
         }
         catch (System.Exception e)
         {
@@ -53,65 +54,52 @@ public class NetworkManager : MonoBehaviour
         }
     }
 
-    private void RegisterStateListeners()
+    private void Update()
     {
-        var callbacks = Colyseus.Schema.Callbacks.Get(room);
+        if (room == null || room.State == null) return;
 
-        // --- PLAYERS ---
-        callbacks.OnAdd(state => state.players, (string sessionId, Player player) => SpawnPlayer(sessionId, player));
-        callbacks.OnRemove(state => state.players, (string sessionId, Player player) =>
+        // Dynamically sync all states every frame
+        SyncMap(room.State.players, spawnedPlayers, SpawnPlayer);
+        SyncMap(room.State.eggs, spawnedEggs, SpawnEgg);
+        SyncMap(room.State.guards, spawnedGuards, SpawnGuard);
+        SyncMap(room.State.pets, spawnedPets, SpawnPet);
+    }
+
+    // This method guarantees objects spawn for late-joiners and are destroyed when players leave
+    private void SyncMap<T>(MapSchema<T> serverMap, Dictionary<string, GameObject> localMap, System.Action<string, T> spawnMethod)
+    {
+        if (serverMap == null) return;
+
+        // 1. Add missing objects from the server
+        HashSet<string> serverKeys = new HashSet<string>();
+        
+        serverMap.ForEach((key, item) => 
         {
-            if (spawnedPlayers.TryGetValue(sessionId, out GameObject playerObject))
+            serverKeys.Add(key);
+            if (!localMap.ContainsKey(key))
             {
-                Destroy(playerObject);
-                spawnedPlayers.Remove(sessionId);
+                spawnMethod(key, item);
             }
         });
 
-        // --- EGGS ---
-        callbacks.OnAdd(state => state.eggs, (string eggId, Egg egg) => SpawnEgg(eggId, egg));
-        callbacks.OnRemove(state => state.eggs, (string eggId, Egg egg) =>
+        // 2. Remove objects that no longer exist on the server
+        List<string> keysToRemove = new List<string>();
+        foreach (var localKey in localMap.Keys)
         {
-            if (spawnedEggs.TryGetValue(eggId, out GameObject eggObject))
+            if (!serverKeys.Contains(localKey))
             {
-                Destroy(eggObject);
-                spawnedEggs.Remove(eggId);
+                keysToRemove.Add(localKey);
             }
-        });
+        }
 
-        // --- GUARDS ---
-        callbacks.OnAdd(state => state.guards, (string guardId, Guard guard) => SpawnGuard(guardId, guard));
-        callbacks.OnRemove(state => state.guards, (string guardId, Guard guard) =>
+        foreach (var key in keysToRemove)
         {
-            if (spawnedGuards.TryGetValue(guardId, out GameObject guardObject))
+            if (localMap.TryGetValue(key, out GameObject obj))
             {
-                Destroy(guardObject);
-                spawnedGuards.Remove(guardId);
+                Destroy(obj);
+                localMap.Remove(key);
             }
-        });
-
-        // --- PETS ---
-        callbacks.OnAdd(state => state.pets, (string petId, Pet pet) => SpawnPet(petId, pet));
-        callbacks.OnRemove(state => state.pets, (string petId, Pet pet) =>
-        {
-            if (spawnedPets.TryGetValue(petId, out GameObject petObject))
-            {
-                Destroy(petObject);
-                spawnedPets.Remove(petId);
-            }
-        });
-
-        // --- INITIAL STATE ---
-        room.OnStateChange += (state, isFirstState) =>
-        {
-            if (isFirstState)
-            {
-                state.players.ForEach((sessionId, player) => SpawnPlayer(sessionId, player));
-                state.eggs.ForEach((eggId, egg) => SpawnEgg(eggId, egg));
-                state.guards.ForEach((guardId, guard) => SpawnGuard(guardId, guard));
-                state.pets.ForEach((petId, pet) => SpawnPet(petId, pet));
-            }
-        };
+        }
     }
 
     private void SpawnPlayer(string sessionId, Player player)
@@ -197,18 +185,15 @@ public class NetworkManager : MonoBehaviour
         {
             GameObject newPet = Instantiate(prefabToUse, spawnPosition, Quaternion.identity);
             
-            // 1. ADD TO DICTIONARY IMMEDIATELY
-            // This guarantees we never duplicate the model, even if the script below fails!
+            // ADD TO DICTIONARY IMMEDIATELY
             spawnedPets.Add(petId, newPet);
 
-            // 2. Safely get or add the component
             NetworkPet netPet = newPet.GetComponent<NetworkPet>();
             if (netPet == null) 
             {
                 netPet = newPet.AddComponent<NetworkPet>();
             }
             
-            // 3. Only apply server data if the component successfully attached
             if (netPet != null)
             {
                 netPet.serverState = pet;
@@ -217,20 +202,6 @@ public class NetworkManager : MonoBehaviour
             {
                 Debug.LogError($"[Fix] Failed to attach NetworkPet script to {prefabToUse.name}!");
             }
-        }
-    }
-
-    private void Update()
-    {
-        if (room != null && room.State != null && room.State.pets != null)
-        {
-            room.State.pets.ForEach((petId, pet) => 
-            {
-                if (!spawnedPets.ContainsKey(petId))
-                {
-                    SpawnPet(petId, pet);
-                }
-            });
         }
     }
 
