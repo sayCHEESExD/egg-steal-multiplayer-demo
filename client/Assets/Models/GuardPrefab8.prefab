@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 7381602653351322614}
   - component: {fileID: 4097950612146210521}
   - component: {fileID: 6036755220611226878}
+  - component: {fileID: 8674259208516083481}
   m_Layer: 0
   m_Name: GuardPrefab8
   m_TagString: Untagged
@@ -111,6 +112,28 @@ CapsuleCollider:
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!95 &8674259208516083481
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2017589919577331013}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 00b15220096322a49a3048399f561c79, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1001 &6132891670258260833
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -125,7 +148,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 64354ef627a10f142a1f1e7bfe158a38, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.04
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 64354ef627a10f142a1f1e7bfe158a38, type: 3}
       propertyPath: m_LocalPosition.z

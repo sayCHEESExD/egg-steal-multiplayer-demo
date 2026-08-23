@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 3421307964949153332}
   - component: {fileID: 7132789074853710705}
   - component: {fileID: 2348632003892987292}
+  - component: {fileID: 6617680575318732165}
   m_Layer: 0
   m_Name: GuardPrefab4
   m_TagString: Untagged
@@ -111,6 +112,28 @@ CapsuleCollider:
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!95 &6617680575318732165
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4986388092273770443}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 33017a75335dd734ba9d320e2ac66b69, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1001 &6936210244759136046
 PrefabInstance:
   m_ObjectHideFlags: 0
