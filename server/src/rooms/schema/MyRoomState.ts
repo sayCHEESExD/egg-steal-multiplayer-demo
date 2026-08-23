@@ -49,9 +49,18 @@ export class Pet extends Schema {
     idleTimer: number = 0;
 }
 
+export class Treadmill extends Schema {
+    @type("string") id: string = "";
+    @type("number") x: number = 0;
+    @type("number") y: number = 0;
+    @type("number") z: number = 0;
+    @type("string") occupantId: string = "";
+}
+
 export class MyRoomState extends Schema {
     @type({ map: Player }) players = new MapSchema<Player>();
     @type({ map: Egg }) eggs = new MapSchema<Egg>();
     @type({ map: Guard }) guards = new MapSchema<Guard>();
-    @type({ map: Pet }) pets = new MapSchema<Pet>(); // <-- NEW
+    @type({ map: Pet }) pets = new MapSchema<Pet>(); 
+    @type({ map: Treadmill }) treadmills = new MapSchema<Treadmill>();
 }

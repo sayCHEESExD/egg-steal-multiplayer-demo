@@ -13,11 +13,13 @@ public class NetworkManager : MonoBehaviour
 
     [Header("Spawning")]
     public GameObject playerPrefab;
+    public GameObject treadmillPrefab;
     public GameObject[] eggPrefabs;
     public GameObject[] guardPrefabs;
     public GameObject[] petPrefabs;
     
     public Dictionary<string, GameObject> spawnedPlayers { get; private set; } = new Dictionary<string, GameObject>();
+    public Dictionary<string, GameObject> spawnedTreadmills { get; private set; } = new Dictionary<string, GameObject>();
     public Dictionary<string, GameObject> spawnedEggs { get; private set; } = new Dictionary<string, GameObject>();
     public Dictionary<string, GameObject> spawnedGuards { get; private set; } = new Dictionary<string, GameObject>();
     public Dictionary<string, GameObject> spawnedPets { get; private set; } = new Dictionary<string, GameObject>();
@@ -45,8 +47,6 @@ public class NetworkManager : MonoBehaviour
         try
         {
             room = await client.JoinOrCreate<MyRoomState>("my_room");
-            // By-passing Colyseus OnAdd/OnRemove listener syntax completely 
-            // to avoid SDK version compilation conflicts.
         }
         catch (System.Exception e)
         {
@@ -58,19 +58,17 @@ public class NetworkManager : MonoBehaviour
     {
         if (room == null || room.State == null) return;
 
-        // Dynamically sync all states every frame
         SyncMap(room.State.players, spawnedPlayers, SpawnPlayer);
+        SyncMap(room.State.treadmills, spawnedTreadmills, SpawnTreadmill);
         SyncMap(room.State.eggs, spawnedEggs, SpawnEgg);
         SyncMap(room.State.guards, spawnedGuards, SpawnGuard);
         SyncMap(room.State.pets, spawnedPets, SpawnPet);
     }
 
-    // This method guarantees objects spawn for late-joiners and are destroyed when players leave
     private void SyncMap<T>(MapSchema<T> serverMap, Dictionary<string, GameObject> localMap, System.Action<string, T> spawnMethod)
     {
         if (serverMap == null) return;
 
-        // 1. Add missing objects from the server
         HashSet<string> serverKeys = new HashSet<string>();
         
         serverMap.ForEach((key, item) => 
@@ -82,7 +80,6 @@ public class NetworkManager : MonoBehaviour
             }
         });
 
-        // 2. Remove objects that no longer exist on the server
         List<string> keysToRemove = new List<string>();
         foreach (var localKey in localMap.Keys)
         {
@@ -117,6 +114,24 @@ public class NetworkManager : MonoBehaviour
                 netPlayer.serverState = player;
             }
             spawnedPlayers.Add(sessionId, newPlayer);
+        }
+    }
+
+    private void SpawnTreadmill(string treadmillId, Treadmill treadmill)
+    {
+        if (spawnedTreadmills.ContainsKey(treadmillId)) return;
+
+        Vector3 spawnPosition = new Vector3(treadmill.x, treadmill.y, treadmill.z);
+        if (treadmillPrefab != null)
+        {
+            // <-- CHANGED: Now respects your Prefab's rotation instead of forcing 0,0,0
+            GameObject newTreadmill = Instantiate(treadmillPrefab, spawnPosition, treadmillPrefab.transform.rotation); 
+            
+            NetworkTreadmill netTm = newTreadmill.GetComponent<NetworkTreadmill>();
+            if (netTm == null) netTm = newTreadmill.AddComponent<NetworkTreadmill>();
+            netTm.serverState = treadmill;
+            netTm.treadmillId = treadmillId;
+            spawnedTreadmills.Add(treadmillId, newTreadmill);
         }
     }
 
@@ -185,7 +200,6 @@ public class NetworkManager : MonoBehaviour
         {
             GameObject newPet = Instantiate(prefabToUse, spawnPosition, Quaternion.identity);
             
-            // ADD TO DICTIONARY IMMEDIATELY
             spawnedPets.Add(petId, newPet);
 
             NetworkPet netPet = newPet.GetComponent<NetworkPet>();

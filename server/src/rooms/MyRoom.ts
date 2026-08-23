@@ -1,5 +1,5 @@
 import { Room, Client } from "@colyseus/core";
-import { MyRoomState, Player, Egg, Guard, Pet } from "./schema/MyRoomState";
+import { MyRoomState, Player, Egg, Guard, Pet, Treadmill } from "./schema/MyRoomState";
 
 export class MyRoom extends Room<MyRoomState> {
   maxClients = 4;
@@ -44,6 +44,38 @@ export class MyRoom extends Room<MyRoomState> {
         guard.speed = 3.0 + (index * 1.5)*2; // Speed increases per biome
         guard.biomeIndex = index;
         this.state.guards.set("guard_" + index, guard);
+    });
+
+    // Spawn 1 Treadmill per base
+    this.basePositions.forEach((basePos, index) => {
+        const tm = new Treadmill();
+        tm.id = "treadmill_" + index;
+        tm.x = basePos.x; // Offset slightly from base center
+        tm.y = -0.8; 
+        tm.z = basePos.z + 30;
+        this.state.treadmills.set(tm.id, tm);
+    });
+
+    this.onMessage("interact_treadmill", (client, data) => {
+        const player = this.state.players.get(client.sessionId);
+        const tm = this.state.treadmills.get(data.id);
+        
+        if (player && tm) {
+            if (tm.occupantId === "") {
+                // Get ON if close enough
+                const dx = player.x - tm.x;
+                const dz = player.z - tm.z;
+                if (Math.sqrt(dx * dx + dz * dz) < 4.0) {
+                    tm.occupantId = client.sessionId;
+                    player.x = tm.x; // Snap player to treadmill
+                    player.z = tm.z;
+                    player.rotY = 0; // Face forward
+                }
+            } else if (tm.occupantId === client.sessionId) {
+                // Get OFF
+                tm.occupantId = "";
+            }
+        }
     });
 
     this.onMessage("move", (client, data) => {
@@ -305,6 +337,14 @@ export class MyRoom extends Room<MyRoomState> {
                       pet.rotY = Math.atan2(dx, dz) * (180 / Math.PI);
                   }
               }
+          }
+      });
+
+      // 4. Treadmill Logic (Safe farming: 2 coins per second)
+      this.state.treadmills.forEach(tm => {
+          if (tm.occupantId !== "" && giveCoins) {
+              const p = this.state.players.get(tm.occupantId);
+              if (p) p.coins += 2; 
           }
       });
   }

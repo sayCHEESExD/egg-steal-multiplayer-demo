@@ -25,7 +25,6 @@ public class NetworkPlayer : MonoBehaviour
     
     private void Start()
     {
-        // Automatically fetch the Animator if the slot is empty
         if (animator == null) animator = GetComponent<Animator>();
         if (animator == null) animator = GetComponentInChildren<Animator>();
 
@@ -68,12 +67,67 @@ public class NetworkPlayer : MonoBehaviour
         float horizontal = Input.GetAxisRaw("Horizontal");
         float vertical = Input.GetAxisRaw("Vertical");
 
+        // 1. Check if local player is on a treadmill
+        bool isOnTreadmill = false;
+        NetworkTreadmill activeTreadmill = null; // <-- NEW: Store the treadmill we are on
+
+        if (NetworkManager.Instance != null && NetworkManager.Instance.room != null)
+        {
+            foreach (var kvp in NetworkManager.Instance.spawnedTreadmills)
+            {
+                NetworkTreadmill tm = kvp.Value.GetComponent<NetworkTreadmill>();
+                if (tm != null && tm.serverState != null && tm.serverState.occupantId == NetworkManager.Instance.room.SessionId)
+                {
+                    isOnTreadmill = true;
+                    activeTreadmill = tm;
+                    break;
+                }
+            }
+        }
+
+        // 2. Treadmill state override
+        if (isOnTreadmill)
+        {
+            if (animator != null)
+            {
+                animator.SetFloat("Speed", 1f);
+                animator.speed = 3f; 
+            }
+
+            if (Input.GetKeyDown(KeyCode.T) || Input.GetKeyDown(KeyCode.Space))
+            {
+                TryInteractTreadmill();
+            }
+
+            if (serverState != null)
+            {
+                Vector3 pos = transform.position;
+                pos.y = Mathf.Lerp(pos.y, serverState.y, Time.deltaTime * 15f);
+                transform.position = pos;
+
+                // <-- NEW: Snap player rotation perfectly to the Treadmill's rotation
+                if (activeTreadmill != null)
+                {
+                    transform.rotation = activeTreadmill.transform.rotation * Quaternion.Euler(0, 180f, 0);
+                    
+                    // Note: If the player is running backwards on the treadmill, use this line instead:
+                    // transform.rotation = activeTreadmill.transform.rotation * Quaternion.Euler(0, 180f, 0);
+                }
+            }
+            return;
+        }
+
+        // 3. Normal local movement
         if (Input.GetKeyDown(KeyCode.Space))
         {
             NetworkManager.Instance.room.Send("jump");
         }
 
-        // Local Animation
+        if (Input.GetKeyDown(KeyCode.T))
+        {
+            TryInteractTreadmill();
+        }
+
         if (animator != null)
         {
             float inputMagnitude = new Vector2(horizontal, vertical).magnitude > 0.1f ? 1f : 0f;
@@ -139,6 +193,27 @@ public class NetworkPlayer : MonoBehaviour
         }
     }
 
+    private void TryInteractTreadmill()
+    {
+        float closestDistance = 4f; 
+        string closestTmId = "";
+
+        foreach (var kvp in NetworkManager.Instance.spawnedTreadmills)
+        {
+            float distance = Vector3.Distance(transform.position, kvp.Value.transform.position);
+            if (distance < closestDistance)
+            {
+                closestDistance = distance;
+                closestTmId = kvp.Key;
+            }
+        }
+
+        if (!string.IsNullOrEmpty(closestTmId))
+        {
+            NetworkManager.Instance.room.Send("interact_treadmill", new { id = closestTmId });
+        }
+    }
+
     private void TryPickupNearestEgg()
     {
         float closestDistance = 3f; 
@@ -172,16 +247,39 @@ public class NetworkPlayer : MonoBehaviour
 
         Vector3 targetPosition = new Vector3(serverState.x, serverState.y, serverState.z);
         
-        // Remote Animation: Calculate distance to target to determine if they are walking
+        bool isRemoteOnTreadmill = false;
+        if (NetworkManager.Instance != null)
+        {
+            foreach (var kvp in NetworkManager.Instance.spawnedTreadmills)
+            {
+                NetworkTreadmill tm = kvp.Value.GetComponent<NetworkTreadmill>();
+                if (tm != null && tm.serverState != null && !string.IsNullOrEmpty(tm.serverState.occupantId))
+                {
+                    if (NetworkManager.Instance.GetSpawnedPlayer(tm.serverState.occupantId) == this.gameObject)
+                    {
+                        isRemoteOnTreadmill = true;
+                        break;
+                    }
+                }
+            }
+        }
+
         if (animator != null)
         {
-            // Ignore Y axis so jumping doesn't trigger the walk animation
-            float distanceToTarget = Vector2.Distance(new Vector2(transform.position.x, transform.position.z), new Vector2(targetPosition.x, targetPosition.z));
-            float remoteSpeed = distanceToTarget > 0.1f ? 1f : 0f;
-            animator.SetFloat("Speed", remoteSpeed);
+            if (isRemoteOnTreadmill)
+            {
+                animator.SetFloat("Speed", 1f);
+                animator.speed = 3f;
+            }
+            else
+            {
+                float distanceToTarget = Vector2.Distance(new Vector2(transform.position.x, transform.position.z), new Vector2(targetPosition.x, targetPosition.z));
+                float remoteSpeed = distanceToTarget > 0.1f ? 1f : 0f;
+                animator.SetFloat("Speed", remoteSpeed);
 
-            float currentSpeed = serverState.moveSpeed > 0 ? serverState.moveSpeed : 10f;
-            animator.speed = currentSpeed / 10f;
+                float currentSpeed = serverState.moveSpeed > 0 ? serverState.moveSpeed : 10f;
+                animator.speed = currentSpeed / 10f;
+            }
         }
 
         transform.position = Vector3.Lerp(transform.position, targetPosition, Time.deltaTime * 10f);
