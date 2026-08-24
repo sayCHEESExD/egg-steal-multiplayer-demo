@@ -9,6 +9,8 @@ export class Player extends Schema {
     @type("number") score: number = 0;
     @type("number") coins: number = 0;
     @type("number") moveSpeed: number = 10;
+
+    velocityY: number = 0;
 }
 
 export class Egg extends Schema {
