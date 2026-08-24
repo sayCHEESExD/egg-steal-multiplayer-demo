@@ -290,6 +290,13 @@ public class NetworkPlayer : MonoBehaviour
 
     private void CheckBiomePosition()
     {
+        // Tell the AudioManager if we are outside the safe zone (Z >= 50)
+        bool isInBiome = transform.position.z >= 50f;
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.ToggleBiomeMusic(isInBiome);
+        }
+
         int currentBiome = Mathf.FloorToInt((transform.position.z - 50f) / 100f);
 
         if (currentBiome != lastBiomeIndex)
