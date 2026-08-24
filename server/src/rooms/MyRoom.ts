@@ -1,7 +1,7 @@
 import { Room, Client } from "@colyseus/core";
 import { MyRoomState, Player, Egg, Guard, Pet, Treadmill } from "./schema/MyRoomState.js";
 
-export class MyRoom extends Room<MyRoomState> {
+export class MyRoom extends Room {
   maxClients = 4;
   availableBases = [0, 1, 2, 3];
   
