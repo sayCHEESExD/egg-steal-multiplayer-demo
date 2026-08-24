@@ -162,7 +162,7 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
         // Simple ground check (assuming Y = 1.0 is your floor based on the enclosure setup)
         if (player && player.y <= 0.1) { 
             // Give the player upward velocity (adjust this number for jump height)
-            player['velocityY'] = 15; 
+            player.velocityY = 15; 
         }
     });
 
@@ -189,16 +189,16 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
   updateGame(deltaTime: number) {
       // 0. Process Player Gravity and Jumping Physics
       this.state.players.forEach(player => {
-          if (player['velocityY'] === undefined) {
-              player['velocityY'] = 0;
+          if (player.velocityY === undefined) {
+              player.velocityY = 0;
           }
 
-          player['velocityY'] -= 40 * (deltaTime / 1000); 
-          player.y += player['velocityY'] * (deltaTime / 1000);
+          player.velocityY -= 40 * (deltaTime / 1000); 
+          player.y += player.velocityY * (deltaTime / 1000);
 
           if (player.y < 0.0) {
               player.y = 0.0;
-              player['velocityY'] = 0;
+              player.velocityY = 0;
           }
       });
 
@@ -245,7 +245,7 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
                       egg.z = centerZ + ((Math.random() * 40) - 20);
                       console.log(`[HATCH] Egg ${egg.id} reset to biome.`);
                   } catch (e) {
-                      console.log(`[HATCH ERROR] Failed to reset egg: ${e.message}`);
+                      console.log(`[HATCH ERROR] Failed to reset egg: ${e instanceof Error ? e.message : String(e)}`);
                   }
               }
           }
