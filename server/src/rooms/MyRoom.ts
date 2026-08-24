@@ -1,7 +1,7 @@
 import { Room, Client } from "colyseus";
 import { MyRoomState, Player, Egg, Guard, Pet, Treadmill } from "./schema/MyRoomState.js";
 
-export class MyRoom extends Room<MyRoomState> {
+export class MyRoom extends Room<{ state: MyRoomState }> {
   maxClients = 4;
   availableBases = [0, 1, 2, 3];
   
@@ -19,7 +19,7 @@ export class MyRoom extends Room<MyRoomState> {
   coinTimer: number = 0;
 
   onCreate (options: any) {
-    this.setState(new MyRoomState());
+    this.state = new MyRoomState();
 
     // Populate Biomes
     let eggCounter = 0;
