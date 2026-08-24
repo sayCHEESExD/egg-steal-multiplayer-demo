@@ -1,5 +1,5 @@
 import { Room, Client } from "@colyseus/core";
-import { MyRoomState, Player, Egg, Guard, Pet, Treadmill } from "./schema/MyRoomState";
+import { MyRoomState, Player, Egg, Guard, Pet, Treadmill } from "./schema/MyRoomState.js";
 
 export class MyRoom extends Room<MyRoomState> {
   maxClients = 4;
@@ -374,7 +374,7 @@ export class MyRoom extends Room<MyRoomState> {
     this.state.players.set(client.sessionId, player);
   }
 
-  onLeave (client: Client, consented: boolean) {
+  onLeave (client: Client, code?: number) {
     const player = this.state.players.get(client.sessionId);
     if (player) this.availableBases.push(player.baseIndex);
     
