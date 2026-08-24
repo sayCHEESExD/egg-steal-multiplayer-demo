@@ -29,9 +29,9 @@ public class UIManager : MonoBehaviour
         {
             // Formats large numbers with 'K' like in the image, with a shoe emoji
             if (speed >= 1000)
-                speedText.text = "👟 " + (speed / 1000f).ToString("0.#") + "K";
+                speedText.text = "Speed: " + (speed / 1000f).ToString("0.#") + "K";
             else
-                speedText.text = "👟 " + speed.ToString("F0");
+                speedText.text = "Speed:  " + speed.ToString("F0");
         }
     }
 

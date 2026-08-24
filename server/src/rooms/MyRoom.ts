@@ -127,18 +127,32 @@ export class MyRoom extends Room<MyRoomState> {
 
             if (dist < 20.0) { 
                 console.log(`[DELIVERY] ACCEPTED! Egg ${carriedEgg.id} is now hatching.`);
-                carriedEgg.state = 2; 
-                carriedEgg.carrierId = "";
-                carriedEgg.ownerId = client.sessionId;
-                carriedEgg.hatchProgress = 5000;
                 
-                carriedEgg.x = myBase.x;
-                carriedEgg.z = myBase.z;
+                carriedEgg.state = 2; // Hatching state
+                carriedEgg.carrierId = ""; // Dropped on the ground
+                carriedEgg.ownerId = client.sessionId; // Claimed by the base owner
+                carriedEgg.hatchProgress = 5000; // Reset timer
+                
+                // Drop the egg at the player's exact feet instead of base center so they don't stack
+                carriedEgg.x = player.x;
+                carriedEgg.z = player.z;
+                carriedEgg.y = 0; 
             } else {
                 console.log(`[DELIVERY] DENIED! Player is too far from base (${dist.toFixed(2)} > 20.0)`);
             }
         } else {
             console.log(`[DELIVERY] DENIED! Player is not carrying an egg.`);
+        }
+    });
+
+    this.onMessage("pickup_egg", (client, data) => {
+        const egg = this.state.eggs.get(data.eggId);
+        
+        // Allow pickup if it is completely free OR if it is currently hatching (state 2)
+        if (egg && (egg.carrierId === "" || egg.state === 2)) {
+            egg.carrierId = client.sessionId;
+            egg.state = 1; // Set back to carried state
+            egg.ownerId = ""; // Clear the owner so it is successfully stolen
         }
     });
 
