@@ -38,7 +38,7 @@ public class NetworkManager : MonoBehaviour
 
     private async void Start()
     {
-        client = new Client("ws://localhost:2567");
+        client = new Client("wss://egg-steal-multiplayer-demo.onrender.com");
         await ConnectToServer();
     }
 
