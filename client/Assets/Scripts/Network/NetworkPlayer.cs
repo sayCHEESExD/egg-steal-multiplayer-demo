@@ -13,14 +13,14 @@ public class NetworkPlayer : MonoBehaviour
     private int lastBiomeIndex = -1;
     
     private readonly string[] biomeNames = {
-        "Plains",
-        "Desert",
-        "Forest",
-        "Snow",
-        "Volcano",
-        "Abyss Ocean",
-        "Prehistoric",
-        "Cosmic"
+        "Plains  <sprite=0>",
+        "Desert  <sprite=1>",
+        "Forest  <sprite=2>",
+        "Snow  <sprite=3>",
+        "Volcano  <sprite=4>",
+        "Abyss Ocean  <sprite=5>",
+        "Prehistoric  <sprite=6>",
+        "Cosmic  <sprite=7>"
     };
     
     private void Start()
@@ -56,7 +56,7 @@ public class NetworkPlayer : MonoBehaviour
 
     private void HandleUpgrades()
     {
-        if (Input.GetKeyDown(KeyCode.U))
+        if (Input.GetKeyDown(KeyCode.T))
         {
             NetworkManager.Instance.room.Send("upgrade_speed");
         }
