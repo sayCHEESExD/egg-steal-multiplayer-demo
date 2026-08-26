@@ -26,8 +26,8 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
     let eggCounter = 0;
     this.biomeCenters.forEach((centerZ, index) => {
         const isEven = index % 2 === 0;
-        const guardStartX = isEven ? 100 : -100; 
-        const guardStartZ = centerZ + 1;// Stationed near the top wall of the biome
+        const guardStartX = isEven ? 24 : -24; 
+        const guardStartZ = centerZ + 35;// Stationed near the top wall of the biome
 
         // 1. Spawn 1 guard per biome
         const guard = new Guard();
