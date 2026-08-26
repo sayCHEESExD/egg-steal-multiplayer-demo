@@ -1,3 +1,4 @@
+// MyRoom.ts
 import { Room, Client } from "colyseus";
 import { MyRoomState, Player, Egg, Guard, Pet, Treadmill } from "./schema/MyRoomState.js";
 
@@ -24,26 +25,42 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
     // Populate Biomes
     let eggCounter = 0;
     this.biomeCenters.forEach((centerZ, index) => {
-        // 1. Spawn 3 eggs per biome
+        const isEven = index % 2 === 0;
+        const guardStartX = isEven ? 18 : -18; // Right wall for even, Left wall for odd
+        const guardStartZ = centerZ + 35; // Stationed near the top wall of the biome
+
+        // 1. Spawn 1 guard per biome
+        const guard = new Guard();
+        guard.x = guardStartX;
+        guard.y = 0.5;
+        guard.z = guardStartZ;
+        guard.baseX = guardStartX; // Save X for AI return
+        guard.baseZ = guardStartZ; // Save Z for AI return
+        guard.speed = 3.0 + (index * 1.5)*2; 
+        guard.biomeIndex = index;
+        this.state.guards.set("guard_" + index, guard);
+
+        // 2. Spawn 3 eggs tightly nested next to the guard
         for (let i = 0; i < 3; i++) {
             const egg = new Egg();
             egg.id = "egg_" + eggCounter++;
-            egg.x = (Math.random() * 40) - 20; // Spread across X axis
+            
+            // Create a small triangular nest shape slightly to the left/right of the guard
+            let xOffset = 0;
+            let zOffset = 0;
+            if (i === 0) { xOffset = isEven ? -3 : 3; zOffset = 0; }
+            if (i === 1) { xOffset = isEven ? -4.5 : 4.5; zOffset = 2; }
+            if (i === 2) { xOffset = isEven ? -4.5 : 4.5; zOffset = -2; }
+
+            egg.baseX = guardStartX + xOffset;
+            egg.baseZ = guardStartZ + zOffset;
+            
+            egg.x = egg.baseX;
             egg.y = 0.5;
-            egg.z = centerZ + ((Math.random() * 40) - 20); // Spread within biome Z
+            egg.z = egg.baseZ;
             egg.biomeIndex = index;
             this.state.eggs.set(egg.id, egg);
         }
-
-        // 2. Spawn 1 guard per biome
-        const guard = new Guard();
-        guard.x = 0;
-        guard.y = 0.5;
-        guard.z = centerZ;
-        guard.baseZ = centerZ;
-        guard.speed = 3.0 + (index * 1.5)*2; // Speed increases per biome
-        guard.biomeIndex = index;
-        this.state.guards.set("guard_" + index, guard);
     });
 
     // Spawn 1 Treadmill per base
@@ -233,17 +250,13 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
                       console.log(`[HATCH ERROR] Could not find player with ID: ${egg.ownerId}`);
                   }
 
-                  // Reset the egg back to its original biome for the next cycle
+                  // Reset the egg back to its EXACT fixed nest for the next cycle
                   try {
-                      const idNum = parseInt(egg.id.split('_')[1]);
-                      const biomeIndex = Math.floor(idNum / 3);
-                      const centerZ = this.biomeCenters[biomeIndex] || 100;
-
                       egg.state = 0;
                       egg.ownerId = "";
-                      egg.x = (Math.random() * 40) - 20;
-                      egg.z = centerZ + ((Math.random() * 40) - 20);
-                      console.log(`[HATCH] Egg ${egg.id} reset to biome.`);
+                      egg.x = egg.baseX;
+                      egg.z = egg.baseZ;
+                      console.log(`[HATCH] Egg ${egg.id} reset to fixed nest.`);
                   } catch (e) {
                       console.log(`[HATCH ERROR] Failed to reset egg: ${e instanceof Error ? e.message : String(e)}`);
                   }
@@ -274,13 +287,12 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
               const dist = Math.sqrt(dx * dx + dz * dz);
               
               if (dist < 2.5) {
-                  // Guard catches the player! Reset egg state to 0 so the client drops it.
+                  // Guard catches the player! Reset egg to its fixed nest.
                   stolenEgg.carrierId = "";
                   stolenEgg.state = 0; 
-                  stolenEgg.x = (Math.random() * 40) - 20;
+                  stolenEgg.x = stolenEgg.baseX;
                   stolenEgg.y = 0.5;
-                  // Calculate biome center (Z = 100, 200, 300, etc.)
-                  stolenEgg.z = ((stolenEgg.biomeIndex + 1) * 100) + ((Math.random() * 40) - 20);
+                  stolenEgg.z = stolenEgg.baseZ;
               } else if (dist > 0.1) {
                   // Chase target
                   const moveAmt = guard.speed * (deltaTime / 1000);
@@ -289,15 +301,15 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
                   guard.rotY = Math.atan2(dx, dz) * (180 / Math.PI);
               }
           } else {
-              // No target, return to biome center
-              const dx = 0 - guard.x; 
+              // No target, return to exact wall position instead of X=0
+              const dx = guard.baseX - guard.x; 
               const dz = guard.baseZ - guard.z;
               const dist = Math.sqrt(dx * dx + dz * dz);
               
               if (dist > 0.1) {
                   const moveAmt = guard.speed * (deltaTime / 1000);
                   if (moveAmt > dist) {
-                      guard.x = 0;
+                      guard.x = guard.baseX;
                       guard.z = guard.baseZ;
                   } else {
                       guard.x += (dx / dist) * moveAmt;

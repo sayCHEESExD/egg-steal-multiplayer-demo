@@ -1,3 +1,4 @@
+// MyRoomState.ts
 import { Schema, type, MapSchema } from "@colyseus/schema";
 
 export class Player extends Schema {
@@ -23,6 +24,10 @@ export class Egg extends Schema {
     @type("number") hatchProgress: number = 0;
     @type("string") ownerId: string = "";
     @type("number") biomeIndex: number = 0;
+
+    // Unsynced properties to remember the exact nest position
+    baseX: number = 0; 
+    baseZ: number = 0; 
 }
 
 export class Guard extends Schema {
@@ -34,6 +39,9 @@ export class Guard extends Schema {
     @type("number") baseZ: number = 0;   // The center of this guard's biome
     @type("number") speed: number = 0;   // Speed increases in further biomes
     @type("number") biomeIndex: number = 0;
+
+    // Unsynced property to remember wall position
+    baseX: number = 0; 
 }
 
 export class Pet extends Schema {
