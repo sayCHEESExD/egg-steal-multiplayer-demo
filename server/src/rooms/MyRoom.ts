@@ -165,9 +165,16 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
 
     this.onMessage("pickup_egg", (client, data) => {
         const egg = this.state.eggs.get(data.eggId);
-        
-        // Allow pickup if it is completely free OR if it is currently hatching (state 2)
-        if (egg && (egg.carrierId === "" || egg.state === 2)) {
+        const player = this.state.players.get(client.sessionId);
+
+        // Check if the player is already carrying an egg
+        let isAlreadyCarrying = false;
+        this.state.eggs.forEach((e) => {
+            if (e.carrierId === client.sessionId) isAlreadyCarrying = true;
+        });
+
+        // Allow pickup if player isn't carrying one, AND the egg is completely free OR currently hatching (state 2)
+        if (egg && player && !isAlreadyCarrying && (egg.carrierId === "" || egg.state === 2)) {
             egg.carrierId = client.sessionId;
             egg.state = 1; // Set back to carried state
             egg.ownerId = ""; // Clear the owner so it is successfully stolen
@@ -199,6 +206,26 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
                 player.coins -= cost;
                 player.moveSpeed += 2; // Increase speed by 1
                 console.log(`${client.sessionId} upgraded speed to ${player.moveSpeed}`);
+            }
+        }
+    });
+
+    this.onMessage("drop_egg", (client, data) => {
+        let carriedEgg: Egg = null;
+        this.state.eggs.forEach((e) => {
+            if (e.carrierId === client.sessionId) carriedEgg = e;
+        });
+
+        if (carriedEgg) {
+            const player = this.state.players.get(client.sessionId);
+            carriedEgg.carrierId = "";
+            carriedEgg.state = 0; 
+            
+            // Drop it at the player's current location
+            if (player) {
+                carriedEgg.x = player.x;
+                carriedEgg.z = player.z;
+                carriedEgg.y = 0.5;
             }
         }
     });
