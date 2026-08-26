@@ -115,12 +115,36 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
             if (e.carrierId === client.sessionId) isAlreadyCarrying = true;
         });
 
-        if (egg && player && egg.state === 0 && !isAlreadyCarrying) {
+        // Allow pickup if player isn't carrying one, AND the egg is completely free OR currently hatching
+        if (egg && player && !isAlreadyCarrying && (egg.carrierId === "" || egg.state === 2)) {
             const dx = egg.x - player.x;
             const dz = egg.z - player.z;
-            if (Math.sqrt(dx * dx + dz * dz) < 3.0) {
-                egg.state = 1; 
+            
+            // Distance check to prevent long-distance network pickup spam
+            if (Math.sqrt(dx * dx + dz * dz) < 3.5) {
                 egg.carrierId = client.sessionId;
+                egg.state = 1; 
+                egg.ownerId = ""; 
+            }
+        }
+    });
+
+    this.onMessage("drop_egg", (client, data) => {
+        let carriedEgg: Egg = null;
+        this.state.eggs.forEach((e) => {
+            if (e.carrierId === client.sessionId) carriedEgg = e;
+        });
+
+        if (carriedEgg) {
+            const player = this.state.players.get(client.sessionId);
+            carriedEgg.carrierId = "";
+            carriedEgg.state = 0; 
+            
+            // Drop it at the player's current location
+            if (player) {
+                carriedEgg.x = player.x;
+                carriedEgg.z = player.z;
+                carriedEgg.y = 0.5;
             }
         }
     });
