@@ -5,35 +5,55 @@ public class StealHUD : MonoBehaviour
     [Header("UI References")]
     public GameObject runBanner;
     public GameObject dropPrompt;
+    public GameObject hatchPrompt;
     
     [Header("Input")]
-    public KeyCode dropKey = KeyCode.Backspace;
+    public KeyCode dropKey = KeyCode.Q;
 
-    // Set this from your NetworkPlayer/NetworkManager when a pickup or drop happens
     public static bool IsCarryingEgg = false; 
+    private Transform localPlayer;
 
     void Start()
     {
         runBanner.SetActive(false);
         dropPrompt.SetActive(false);
+        if (hatchPrompt != null) hatchPrompt.SetActive(false);
     }
 
     void Update()
     {
-        // Toggle visibility based on carrying state
-        if (runBanner.activeSelf != IsCarryingEgg)
+        if (localPlayer == null && NetworkManager.Instance != null && NetworkManager.Instance.room != null)
         {
-            runBanner.SetActive(IsCarryingEgg);
-            dropPrompt.SetActive(IsCarryingEgg);
+            GameObject pObj = NetworkManager.Instance.GetSpawnedPlayer(NetworkManager.Instance.room.SessionId);
+            if (pObj != null) localPlayer = pObj.transform;
         }
 
-        // Handle Drop Input
-        if (IsCarryingEgg && Input.GetKeyDown(dropKey))
+        if (!IsCarryingEgg)
         {
-            // IMPORTANT: Replace this line with your actual Colyseus Room reference
-            // e.g., NetworkManager.Instance.room.Send("drop_egg");
-            
-            IsCarryingEgg = false; // Instantly hide UI locally
+            runBanner.SetActive(false);
+            dropPrompt.SetActive(false);
+            if (hatchPrompt != null) hatchPrompt.SetActive(false);
+            return;
+        }
+
+        bool inSafeZone = localPlayer != null && localPlayer.position.z < 50f;
+
+        if (inSafeZone)
+        {
+            runBanner.SetActive(false);
+            dropPrompt.SetActive(false);
+            if (hatchPrompt != null) hatchPrompt.SetActive(true);
+        }
+        else
+        {
+            runBanner.SetActive(true);
+            dropPrompt.SetActive(true);
+            if (hatchPrompt != null) hatchPrompt.SetActive(false);
+
+            if (Input.GetKeyDown(dropKey))
+            {
+                NetworkManager.Instance.room.Send("drop_egg");
+            }
         }
     }
 }

@@ -305,7 +305,7 @@ public class NetworkPlayer : MonoBehaviour
             
             if (currentBiome >= 0 && currentBiome < biomeNames.Length)
             {
-                if (UIManager.Instance != null)
+                if (UIManager.Instance != null && !StealHUD.IsCarryingEgg)
                 {
                     UIManager.Instance.ShowBiomeText(biomeNames[currentBiome]);
                 }
