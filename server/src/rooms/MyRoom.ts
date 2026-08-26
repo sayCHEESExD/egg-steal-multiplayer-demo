@@ -26,8 +26,8 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
     let eggCounter = 0;
     this.biomeCenters.forEach((centerZ, index) => {
         const isEven = index % 2 === 0;
-        const guardStartX = isEven ? 19.5 : -19.5; // Right wall for even, Left wall for odd
-        const guardStartZ = centerZ + 42; // Stationed near the top wall of the biome
+        const guardStartX = isEven ? 100 : -100; 
+        const guardStartZ = centerZ + 1;// Stationed near the top wall of the biome
 
         // 1. Spawn 1 guard per biome
         const guard = new Guard();
@@ -41,6 +41,7 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
         this.state.guards.set("guard_" + index, guard);
 
         // 2. Spawn 3 eggs tightly nested next to the guard
+
         for (let i = 0; i < 3; i++) {
             const egg = new Egg();
             egg.id = "egg_" + eggCounter++;
@@ -48,9 +49,9 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
             // Create a small triangular nest shape slightly to the left/right of the guard
             let xOffset = 0;
             let zOffset = 0;
-            if (i === 0) { xOffset = isEven ? -3 : 3; zOffset = 0; }
-            if (i === 1) { xOffset = isEven ? -4.5 : 4.5; zOffset = 2; }
-            if (i === 2) { xOffset = isEven ? -4.5 : 4.5; zOffset = -2; }
+            if (i === 0) { xOffset = isEven ? -8 : 8; zOffset = 0; }
+            if (i === 1) { xOffset = isEven ? -11 : 11; zOffset = 4; }
+            if (i === 2) { xOffset = isEven ? -11 : 11; zOffset = -4; }
 
             egg.baseX = guardStartX + xOffset;
             egg.baseZ = guardStartZ + zOffset;
