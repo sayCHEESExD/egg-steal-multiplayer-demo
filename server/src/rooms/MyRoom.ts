@@ -36,7 +36,7 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
         guard.z = guardStartZ;
         guard.baseX = guardStartX; // Save X for AI return
         guard.baseZ = guardStartZ; // Save Z for AI return
-        guard.speed = 3.0 + (index * 1.5)*2; 
+        guard.speed = 15.0 + (index * 5.0); 
         guard.biomeIndex = index;
         this.state.guards.set("guard_" + index, guard);
 
