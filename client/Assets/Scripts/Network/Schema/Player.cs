@@ -10,4 +10,7 @@ public partial class Player : Schema
     [Type(5, "number")] public float score = 0;
     [Type(6, "number")] public float coins = 0;     
     [Type(7, "number")] public float moveSpeed = 10f;
+    [Type(8, "number")] public float enclosureLevel = default(float);
+    [Type(9, "number")] public float petCapacity = default(float);
+    [Type(10, "number")] public float enclosureUpgradeCost = default(float);
 }

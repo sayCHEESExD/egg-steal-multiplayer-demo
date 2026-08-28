@@ -92,17 +92,21 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
         }
     });
 
-    this.onMessage("unmount_treadmill", (client, data) => {
+    this.onMessage("mount_treadmill", (client, data) => {
         const player = this.state.players.get(client.sessionId);
-        let activeTm: Treadmill | null = null;
+        const tm = this.state.treadmills.get(data.id);
         
-        this.state.treadmills.forEach(tm => {
-            if (tm.occupantId === client.sessionId) activeTm = tm;
-        });
-
-        if (player && activeTm) {
-            activeTm.occupantId = "";
-            player.velocityY = 15; // Makes the player pop off the treadmill
+        if (player && tm && tm.ownerId === client.sessionId && tm.occupantId === "") {
+            const dx = player.x - tm.x;
+            const dz = player.z - tm.z;
+            
+            // Shrink server-side distance check from 4.0 to 1.2
+            if (Math.sqrt(dx * dx + dz * dz) < 1.2) {
+                tm.occupantId = client.sessionId;
+                player.x = tm.x; 
+                player.z = tm.z;
+                player.rotY = 0; 
+            }
         }
     });
 
@@ -184,6 +188,17 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
             const dist = Math.sqrt(dx * dx + dz * dz);
             
             if (dist < 20.0) { 
+                // --- NEW CAPACITY CHECK ---
+                let currentPetsAndEggs = 0;
+                this.state.pets.forEach(p => { if (p.ownerId === client.sessionId) currentPetsAndEggs++; });
+                this.state.eggs.forEach(e => { if (e.ownerId === client.sessionId && e.state === 2) currentPetsAndEggs++; });
+
+                if (currentPetsAndEggs >= player.petCapacity) {
+                    // Enclosure is full, deny delivery
+                    return; 
+                }
+                // --------------------------
+
                 carriedEgg.state = 2; 
                 carriedEgg.carrierId = ""; 
                 carriedEgg.ownerId = client.sessionId; 
@@ -196,6 +211,27 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
         }
     });
 
+    this.onMessage("upgrade_enclosure", (client) => {
+        const player = this.state.players.get(client.sessionId);
+        if (player && player.coins >= player.enclosureUpgradeCost) {
+            player.coins -= player.enclosureUpgradeCost;
+            player.enclosureLevel += 1;
+            player.petCapacity += 2; // Adds 2 more pet slots per level
+            player.enclosureUpgradeCost = Math.floor(player.enclosureUpgradeCost * 2);
+        }
+    });
+
+    this.onMessage("sell_pet", (client, data) => {
+        const pet = this.state.pets.get(data.petId);
+        const player = this.state.players.get(client.sessionId);
+        
+        if (pet && player && pet.ownerId === client.sessionId) {
+            // Refund coins based on the pet's biome rarity
+            player.coins += 50 * (pet.biomeIndex + 1);
+            this.state.pets.delete(data.petId); // Remove the pet from the server
+        }
+    });
+    
     this.onMessage("jump", (client, message) => {
         const player = this.state.players.get(client.sessionId);
         if (player && player.y <= 0.1) { 

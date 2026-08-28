@@ -186,6 +186,17 @@ public class NetworkPlayer : MonoBehaviour
             }
         }
 
+        if (transform.position.z < 50f && Input.GetKeyDown(KeyCode.G))
+        {
+            NetworkManager.Instance.room.Send("upgrade_enclosure");
+        }
+
+        // Sell Pet (Press X while standing near one of your pets)
+        if (Input.GetKeyDown(KeyCode.X))
+        {
+            TrySellNearestPet();
+        }
+
         if (animator != null)
         {
             float inputMagnitude = new Vector2(horizontal, vertical).magnitude > 0.1f ? 1f : 0f;
@@ -323,6 +334,39 @@ public class NetworkPlayer : MonoBehaviour
                     UIManager.Instance.ShowBiomeText(biomeNames[currentBiome]);
                 }
             }
+        }
+    }
+    
+    private void TrySellNearestPet()
+    {
+        float closestDistance = 4f; 
+        string closestPetId = "";
+
+        // Assuming you track pets in NetworkManager and have a NetworkPet.cs script attached to them
+        if (NetworkManager.Instance.spawnedPets != null)
+        {
+            foreach (var kvp in NetworkManager.Instance.spawnedPets)
+            {
+                NetworkPet pet = kvp.Value.GetComponent<NetworkPet>();
+                if (pet != null && pet.serverState != null && pet.serverState.ownerId == NetworkManager.Instance.room.SessionId)
+                {
+                    float distance = Vector2.Distance(
+                        new Vector2(transform.position.x, transform.position.z), 
+                        new Vector2(kvp.Value.transform.position.x, kvp.Value.transform.position.z)
+                    );
+                    
+                    if (distance < closestDistance)
+                    {
+                        closestDistance = distance;
+                        closestPetId = kvp.Key;
+                    }
+                }
+            }
+        }
+
+        if (!string.IsNullOrEmpty(closestPetId))
+        {
+            NetworkManager.Instance.room.Send("sell_pet", new { petId = closestPetId });
         }
     }
 }

@@ -10,6 +10,9 @@ export class Player extends Schema {
     @type("number") score: number = 0;
     @type("number") coins: number = 0;
     @type("number") moveSpeed: number = 10;
+    @type("number") enclosureLevel: number = 1;
+    @type("number") petCapacity: number = 3; 
+    @type("number") enclosureUpgradeCost: number = 100;
 
     velocityY: number = 0;
 }
@@ -67,7 +70,7 @@ export class Treadmill extends Schema {
     @type("string") occupantId: string = "";
     @type("string") ownerId: string = ""; 
     @type("number") level: number = 1; 
-    @type("number") upgradeCost: number = 50; 
+    @type("number") upgradeCost: number = 50;
 }
 
 export class MyRoomState extends Schema {
