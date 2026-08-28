@@ -11,6 +11,7 @@ public class NetworkPlayer : MonoBehaviour
     [HideInInspector] public Player serverState;
 
     private int lastBiomeIndex = -1;
+    private float treadmillCooldown = 0f;
     
     private readonly string[] biomeNames = {
         "Plains  <sprite=0>",
@@ -85,6 +86,8 @@ public class NetworkPlayer : MonoBehaviour
 
     private void HandleLocalMovement()
     {
+        if (treadmillCooldown > 0f) treadmillCooldown -= Time.deltaTime;
+
         float horizontal = Input.GetAxisRaw("Horizontal");
         float vertical = Input.GetAxisRaw("Vertical");
 
@@ -100,7 +103,6 @@ public class NetworkPlayer : MonoBehaviour
                 NetworkTreadmill tm = kvp.Value.GetComponent<NetworkTreadmill>();
                 if (tm != null && tm.serverState != null)
                 {
-                    // Restrict usage to ONLY the owner
                     if (tm.serverState.ownerId == NetworkManager.Instance.room.SessionId)
                     {
                         ownedTreadmillId = kvp.Key;
@@ -118,10 +120,18 @@ public class NetworkPlayer : MonoBehaviour
         // --- TREADMILL AUTO-MOUNT ---
         if (!isOnTreadmill && !string.IsNullOrEmpty(ownedTreadmillId))
         {
-            float dist = Vector3.Distance(transform.position, ownedTreadmillPos);
-            if (dist < 2.5f) // Auto-snap distance when walking over it
+            // Use Vector2 to calculate flat distance (ignoring Y height)
+            Vector2 playerFlatPos = new Vector2(transform.position.x, transform.position.z);
+            Vector2 treadmillFlatPos = new Vector2(ownedTreadmillPos.x, ownedTreadmillPos.z);
+            float dist = Vector2.Distance(playerFlatPos, treadmillFlatPos);
+            
+            // 1. Tiny radius (0.8f) dead center
+            // 2. Cooldown prevents remounting immediately after jumping
+            // 3. Must be near the ground (Y < 0.5f) to prevent mounting mid-jump
+            if (dist < 0.8f && treadmillCooldown <= 0f && transform.position.y < 0.5f) 
             {
                 NetworkManager.Instance.room.Send("mount_treadmill", new { id = ownedTreadmillId });
+                treadmillCooldown = 0.5f; 
             }
         }
 
@@ -137,12 +147,17 @@ public class NetworkPlayer : MonoBehaviour
             if (serverState != null)
             {
                 transform.position = new Vector3(serverState.x, serverState.y, serverState.z);
-                transform.rotation = Quaternion.Euler(0f, serverState.rotY, 0f);
+                
+                // Force rotation dead forward (0 degrees) while running
+                transform.rotation = Quaternion.Euler(0f, 0f, 0f); 
             }
 
             if (Input.GetKeyDown(KeyCode.Space))
             {
                 NetworkManager.Instance.room.Send("unmount_treadmill");
+                
+                // Give the player 1.5 seconds to fall and walk away before auto-mounting triggers again
+                treadmillCooldown = 1.5f; 
             }
             return; 
         }
