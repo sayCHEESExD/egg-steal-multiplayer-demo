@@ -75,23 +75,34 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
         this.state.treadmills.set(tm.id, tm);
     });
 
-    this.onMessage("interact_treadmill", (client, data) => {
+    this.onMessage("mount_treadmill", (client, data) => {
         const player = this.state.players.get(client.sessionId);
         const tm = this.state.treadmills.get(data.id);
         
-        if (player && tm) {
-            if (tm.occupantId === "") {
-                const dx = player.x - tm.x;
-                const dz = player.z - tm.z;
-                if (Math.sqrt(dx * dx + dz * dz) < 4.0) {
-                    tm.occupantId = client.sessionId;
-                    player.x = tm.x; 
-                    player.z = tm.z;
-                    player.rotY = 0; 
-                }
-            } else if (tm.occupantId === client.sessionId) {
-                tm.occupantId = "";
+        // ONLY allow if it is the owner's treadmill and it is empty
+        if (player && tm && tm.ownerId === client.sessionId && tm.occupantId === "") {
+            const dx = player.x - tm.x;
+            const dz = player.z - tm.z;
+            if (Math.sqrt(dx * dx + dz * dz) < 4.0) {
+                tm.occupantId = client.sessionId;
+                player.x = tm.x; 
+                player.z = tm.z;
+                player.rotY = 0; 
             }
+        }
+    });
+
+    this.onMessage("unmount_treadmill", (client, data) => {
+        const player = this.state.players.get(client.sessionId);
+        let activeTm: Treadmill | null = null;
+        
+        this.state.treadmills.forEach(tm => {
+            if (tm.occupantId === client.sessionId) activeTm = tm;
+        });
+
+        if (player && activeTm) {
+            activeTm.occupantId = "";
+            player.velocityY = 15; // Makes the player pop off the treadmill
         }
     });
 

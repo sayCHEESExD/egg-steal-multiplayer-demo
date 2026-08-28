@@ -88,28 +88,44 @@ public class NetworkPlayer : MonoBehaviour
         float horizontal = Input.GetAxisRaw("Horizontal");
         float vertical = Input.GetAxisRaw("Vertical");
 
-        // 1. Check if local player is on a treadmill
+        // 1. Check Treadmill states and find the player's owned treadmill
         bool isOnTreadmill = false;
+        string ownedTreadmillId = "";
+        Vector3 ownedTreadmillPos = Vector3.zero;
+
         if (NetworkManager.Instance != null && NetworkManager.Instance.room != null)
         {
             foreach (var kvp in NetworkManager.Instance.spawnedTreadmills)
             {
                 NetworkTreadmill tm = kvp.Value.GetComponent<NetworkTreadmill>();
-                if (tm != null && tm.serverState != null && tm.serverState.occupantId == NetworkManager.Instance.room.SessionId)
+                if (tm != null && tm.serverState != null)
                 {
-                    isOnTreadmill = true;
-                    break;
+                    // Restrict usage to ONLY the owner
+                    if (tm.serverState.ownerId == NetworkManager.Instance.room.SessionId)
+                    {
+                        ownedTreadmillId = kvp.Key;
+                        ownedTreadmillPos = kvp.Value.transform.position;
+                        
+                        if (tm.serverState.occupantId == NetworkManager.Instance.room.SessionId)
+                        {
+                            isOnTreadmill = true;
+                        }
+                    }
                 }
             }
         }
 
-        // --- TREADMILL INTERACTION ---
-        if (Input.GetKeyDown(KeyCode.T))
+        // --- TREADMILL AUTO-MOUNT ---
+        if (!isOnTreadmill && !string.IsNullOrEmpty(ownedTreadmillId))
         {
-            TryInteractTreadmill();
+            float dist = Vector3.Distance(transform.position, ownedTreadmillPos);
+            if (dist < 2.5f) // Auto-snap distance when walking over it
+            {
+                NetworkManager.Instance.room.Send("mount_treadmill", new { id = ownedTreadmillId });
+            }
         }
 
-        // If on treadmill, snap to server position/rotation, play animation, and STOP physical movement
+        // If on treadmill, wait for SPACE to jump off and STOP physical movement
         if (isOnTreadmill)
         {
             if (animator != null)
@@ -120,11 +136,15 @@ public class NetworkPlayer : MonoBehaviour
             
             if (serverState != null)
             {
-                // Force rotation to face forward and snap position to the treadmill
                 transform.position = new Vector3(serverState.x, serverState.y, serverState.z);
                 transform.rotation = Quaternion.Euler(0f, serverState.rotY, 0f);
             }
-            return; // Skip normal movement
+
+            if (Input.GetKeyDown(KeyCode.Space))
+            {
+                NetworkManager.Instance.room.Send("unmount_treadmill");
+            }
+            return; 
         }
 
         // --- NEW SPEED COMPRESSION MATH ---
@@ -141,18 +161,6 @@ public class NetworkPlayer : MonoBehaviour
         // 3. Egg Interaction
         if (Input.GetKeyDown(KeyCode.E))
         {
-            bool isCarrying = false;
-            foreach (var kvp in NetworkManager.Instance.spawnedEggs)
-            {
-                NetworkEgg e = kvp.Value.GetComponent<NetworkEgg>();
-                // Added e.serverState != null to prevent Null Reference Exceptions which silently break the E key
-                if (e != null && e.serverState != null && e.serverState.carrierId == NetworkManager.Instance.room.SessionId)
-                {
-                    isCarrying = true;
-                    break;
-                }
-            }
-
             if (StealHUD.IsCarryingEgg)
             {
                 NetworkManager.Instance.room.Send("deliver_egg");
@@ -203,26 +211,6 @@ public class NetworkPlayer : MonoBehaviour
         }
     }
 
-    private void TryInteractTreadmill()
-    {
-        float closestDistance = 4f; 
-        string closestTmId = "";
-
-        foreach (var kvp in NetworkManager.Instance.spawnedTreadmills)
-        {
-            float distance = Vector3.Distance(transform.position, kvp.Value.transform.position);
-            if (distance < closestDistance)
-            {
-                closestDistance = distance;
-                closestTmId = kvp.Key;
-            }
-        }
-
-        if (!string.IsNullOrEmpty(closestTmId))
-        {
-            NetworkManager.Instance.room.Send("interact_treadmill", new { id = closestTmId });
-        }
-    }
 
     private void TryPickupNearestEgg()
     {
