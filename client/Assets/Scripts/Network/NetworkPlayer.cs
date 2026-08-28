@@ -120,17 +120,19 @@ public class NetworkPlayer : MonoBehaviour
         // --- TREADMILL AUTO-MOUNT ---
         if (!isOnTreadmill && !string.IsNullOrEmpty(ownedTreadmillId))
         {
-            // Use Vector2 to calculate flat distance (ignoring Y height)
             Vector2 playerFlatPos = new Vector2(transform.position.x, transform.position.z);
             Vector2 treadmillFlatPos = new Vector2(ownedTreadmillPos.x, ownedTreadmillPos.z);
             float dist = Vector2.Distance(playerFlatPos, treadmillFlatPos);
             
-            // 1. Tiny radius (0.8f) dead center
-            // 2. Cooldown prevents remounting immediately after jumping
-            // 3. Must be near the ground (Y < 0.5f) to prevent mounting mid-jump
             if (dist < 0.8f && treadmillCooldown <= 0f && transform.position.y < 0.5f) 
             {
-                NetworkManager.Instance.room.Send("mount_treadmill", new { id = ownedTreadmillId });
+                // Use a strict Dictionary to prevent MsgPack serialization drops
+                var payload = new System.Collections.Generic.Dictionary<string, object>
+                {
+                    { "id", ownedTreadmillId }
+                };
+                NetworkManager.Instance.room.Send("mount_treadmill", payload);
+                
                 treadmillCooldown = 0.5f; 
             }
         }
@@ -336,7 +338,7 @@ public class NetworkPlayer : MonoBehaviour
             }
         }
     }
-    
+
     private void TrySellNearestPet()
     {
         float closestDistance = 4f; 

@@ -231,7 +231,7 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
             this.state.pets.delete(data.petId); // Remove the pet from the server
         }
     });
-    
+
     this.onMessage("jump", (client, message) => {
         const player = this.state.players.get(client.sessionId);
         if (player && player.y <= 0.1) { 
@@ -391,6 +391,15 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
           if (tm.occupantId !== "" && giveCoins) {
               const p = this.state.players.get(tm.occupantId);
               if (p) {
+                  // Safety check to prevent NaN serialization crashes
+                  if (p.moveSpeed === undefined || isNaN(p.moveSpeed)) {
+                      p.moveSpeed = 10; 
+                  }
+                  if (tm.level === undefined || isNaN(tm.level)) {
+                      tm.level = 1;
+                  }
+
+                  // Safely apply the massive stat boost
                   p.moveSpeed += 50 + (tm.level * 50); 
               }
           }
