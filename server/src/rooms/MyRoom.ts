@@ -79,11 +79,12 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
         const player = this.state.players.get(client.sessionId);
         const tm = this.state.treadmills.get(data.id);
         
-        // ONLY allow if it is the owner's treadmill and it is empty
         if (player && tm && tm.ownerId === client.sessionId && tm.occupantId === "") {
             const dx = player.x - tm.x;
             const dz = player.z - tm.z;
-            if (Math.sqrt(dx * dx + dz * dz) < 4.0) {
+            
+            // Tight distance check
+            if (Math.sqrt(dx * dx + dz * dz) < 1.2) {
                 tm.occupantId = client.sessionId;
                 player.x = tm.x; 
                 player.z = tm.z;
@@ -92,21 +93,18 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
         }
     });
 
-    this.onMessage("mount_treadmill", (client, data) => {
+    // MISSING UNMOUNT HANDLER TO LET PLAYERS JUMP OFF
+    this.onMessage("unmount_treadmill", (client, data) => {
         const player = this.state.players.get(client.sessionId);
-        const tm = this.state.treadmills.get(data.id);
+        let activeTm: Treadmill | null = null;
         
-        if (player && tm && tm.ownerId === client.sessionId && tm.occupantId === "") {
-            const dx = player.x - tm.x;
-            const dz = player.z - tm.z;
-            
-            // Shrink server-side distance check from 4.0 to 1.2
-            if (Math.sqrt(dx * dx + dz * dz) < 1.2) {
-                tm.occupantId = client.sessionId;
-                player.x = tm.x; 
-                player.z = tm.z;
-                player.rotY = 0; 
-            }
+        this.state.treadmills.forEach(tm => {
+            if (tm.occupantId === client.sessionId) activeTm = tm;
+        });
+
+        if (player && activeTm) {
+            activeTm.occupantId = "";
+            player.velocityY = 15; // Makes the player pop off the treadmill
         }
     });
 
