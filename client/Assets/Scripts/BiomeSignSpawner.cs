@@ -15,7 +15,7 @@ public class BiomeSignSpawner : MonoBehaviour
         for (int i = 0; i < biomeCenters.Length; i++)
         {
             bool isEven = i % 2 == 0;
-            float signX = isEven ? 30f : 30f; 
+            float signX = isEven ? 30f : -30f; 
             float signZ = biomeCenters[i] + 10f; 
 
             GameObject sign = Instantiate(signPrefab, new Vector3(signX, 0f, signZ), Quaternion.Euler(0, 180, 0));

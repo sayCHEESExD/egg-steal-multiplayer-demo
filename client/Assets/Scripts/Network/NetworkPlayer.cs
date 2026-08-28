@@ -69,8 +69,6 @@ public class NetworkPlayer : MonoBehaviour
 
         // 1. Check if local player is on a treadmill
         bool isOnTreadmill = false;
-        NetworkTreadmill activeTreadmill = null; // <-- NEW: Store the treadmill we are on
-
         if (NetworkManager.Instance != null && NetworkManager.Instance.room != null)
         {
             foreach (var kvp in NetworkManager.Instance.spawnedTreadmills)
@@ -79,13 +77,18 @@ public class NetworkPlayer : MonoBehaviour
                 if (tm != null && tm.serverState != null && tm.serverState.occupantId == NetworkManager.Instance.room.SessionId)
                 {
                     isOnTreadmill = true;
-                    activeTreadmill = tm;
                     break;
                 }
             }
         }
 
-        // 2. Treadmill state override
+        // --- TREADMILL INTERACTION ---
+        if (Input.GetKeyDown(KeyCode.T))
+        {
+            TryInteractTreadmill();
+        }
+
+        // If on treadmill, snap to server position/rotation, play animation, and STOP physical movement
         if (isOnTreadmill)
         {
             if (animator != null)
@@ -93,48 +96,57 @@ public class NetworkPlayer : MonoBehaviour
                 animator.SetFloat("Speed", 1f);
                 animator.speed = 3f; 
             }
-
-            if (Input.GetKeyDown(KeyCode.T) || Input.GetKeyDown(KeyCode.Space))
-            {
-                TryInteractTreadmill();
-            }
-
+            
             if (serverState != null)
             {
-                Vector3 pos = transform.position;
-                pos.y = Mathf.Lerp(pos.y, serverState.y, Time.deltaTime * 15f);
-                transform.position = pos;
-
-                // <-- NEW: Snap player rotation perfectly to the Treadmill's rotation
-                if (activeTreadmill != null)
-                {
-                    transform.rotation = activeTreadmill.transform.rotation * Quaternion.Euler(0, 180f, 0);
-                    
-                    // Note: If the player is running backwards on the treadmill, use this line instead:
-                    // transform.rotation = activeTreadmill.transform.rotation * Quaternion.Euler(0, 180f, 0);
-                }
+                // Force rotation to face forward and snap position to the treadmill
+                transform.position = new Vector3(serverState.x, serverState.y, serverState.z);
+                transform.rotation = Quaternion.Euler(0f, serverState.rotY, 0f);
             }
-            return;
+            return; // Skip normal movement
         }
 
-        // 3. Normal local movement
+        // --- NEW SPEED COMPRESSION MATH ---
+        float massiveStat = (serverState != null) ? serverState.moveSpeed : 10f;
+        float actualUnitySpeed = 10f + (Mathf.Log10(massiveStat + 1) * 5f);
+        // ----------------------------------
+
+        // 2. Normal local inputs
         if (Input.GetKeyDown(KeyCode.Space))
         {
             NetworkManager.Instance.room.Send("jump");
         }
 
-        if (Input.GetKeyDown(KeyCode.T))
+        // 3. Egg Interaction
+        if (Input.GetKeyDown(KeyCode.E))
         {
-            TryInteractTreadmill();
+            bool isCarrying = false;
+            foreach (var kvp in NetworkManager.Instance.spawnedEggs)
+            {
+                NetworkEgg e = kvp.Value.GetComponent<NetworkEgg>();
+                // Added e.serverState != null to prevent Null Reference Exceptions which silently break the E key
+                if (e != null && e.serverState != null && e.serverState.carrierId == NetworkManager.Instance.room.SessionId)
+                {
+                    isCarrying = true;
+                    break;
+                }
+            }
+
+            if (StealHUD.IsCarryingEgg)
+            {
+                NetworkManager.Instance.room.Send("deliver_egg");
+            }
+            else
+            {
+                TryPickupNearestEgg();
+            }
         }
 
         if (animator != null)
         {
             float inputMagnitude = new Vector2(horizontal, vertical).magnitude > 0.1f ? 1f : 0f;
             animator.SetFloat("Speed", inputMagnitude);
-
-            float currentSpeed = serverState != null ? serverState.moveSpeed : 10f;
-            animator.speed = currentSpeed / 10f;
+            animator.speed = Mathf.Clamp(actualUnitySpeed / 10f, 1f, 4f); 
         }
         
         if (serverState != null)
@@ -144,6 +156,7 @@ public class NetworkPlayer : MonoBehaviour
             transform.position = pos;
         }
 
+        // 4. Camera-Relative Movement
         if (horizontal != 0 || vertical != 0)
         {
             Vector3 camForward = Camera.main.transform.forward;
@@ -155,8 +168,7 @@ public class NetworkPlayer : MonoBehaviour
 
             Vector3 moveDir = (camForward * vertical + camRight * horizontal).normalized;
             
-            float currentSpeed = serverState != null ? serverState.moveSpeed : 5f;
-            transform.position += moveDir * currentSpeed * Time.deltaTime;
+            transform.position += moveDir * actualUnitySpeed * Time.deltaTime;
 
             Quaternion targetRotation = Quaternion.LookRotation(moveDir);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * rotationSpeed);
@@ -167,29 +179,6 @@ public class NetworkPlayer : MonoBehaviour
                 z = transform.position.z,
                 rotY = transform.eulerAngles.y
             });
-        }
-
-        if (Input.GetKeyDown(KeyCode.E))
-        {
-            bool isCarrying = false;
-            foreach (var kvp in NetworkManager.Instance.spawnedEggs)
-            {
-                NetworkEgg e = kvp.Value.GetComponent<NetworkEgg>();
-                if (e != null && e.serverState.carrierId == NetworkManager.Instance.room.SessionId)
-                {
-                    isCarrying = true;
-                    break;
-                }
-            }
-
-            if (isCarrying)
-            {
-                NetworkManager.Instance.room.Send("deliver_egg");
-            }
-            else
-            {
-                TryPickupNearestEgg();
-            }
         }
     }
 
