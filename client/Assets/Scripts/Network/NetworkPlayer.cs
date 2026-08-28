@@ -56,9 +56,30 @@ public class NetworkPlayer : MonoBehaviour
 
     private void HandleUpgrades()
     {
-        if (Input.GetKeyDown(KeyCode.T))
+        if (Input.GetKeyDown(KeyCode.F))
         {
-            NetworkManager.Instance.room.Send("upgrade_speed");
+            TryUpgradeTreadmill();
+        }
+    }
+
+    private void TryUpgradeTreadmill()
+    {
+        float closestDistance = 5f; 
+        string closestTmId = "";
+
+        foreach (var kvp in NetworkManager.Instance.spawnedTreadmills)
+        {
+            float distance = Vector3.Distance(transform.position, kvp.Value.transform.position);
+            if (distance < closestDistance)
+            {
+                closestDistance = distance;
+                closestTmId = kvp.Key;
+            }
+        }
+
+        if (!string.IsNullOrEmpty(closestTmId))
+        {
+            NetworkManager.Instance.room.Send("upgrade_treadmill", new { id = closestTmId });
         }
     }
 

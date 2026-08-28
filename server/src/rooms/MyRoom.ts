@@ -68,9 +68,12 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
     this.basePositions.forEach((basePos, index) => {
         const tm = new Treadmill();
         tm.id = "treadmill_" + index;
-        tm.x = basePos.x; // Offset slightly from base center
+        tm.x = basePos.x;
         tm.y = -0.8; 
         tm.z = basePos.z + 30;
+        tm.ownerId = ""; 
+        tm.level = 1;
+        tm.upgradeCost = 50;
         this.state.treadmills.set(tm.id, tm);
     });
 
@@ -219,17 +222,16 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
         this.updateGame(deltaTime);
     }, 1000 / 30);
 
-    this.onMessage("upgrade_speed", (client, data) => {
+    this.onMessage("upgrade_treadmill", (client, data) => {
         const player = this.state.players.get(client.sessionId);
-        if (player) {
-            // Base cost is 10, doubles for each upgrade level past 5.0 speed
-            const currentLevel = player.moveSpeed - 10;
-            const cost = 10 * Math.pow(2, currentLevel); 
+        const tm = this.state.treadmills.get(data.id);
 
-            if (player.coins >= cost) {
-                player.coins -= cost;
-                player.moveSpeed += 2; // Increase speed by 1
-                console.log(`${client.sessionId} upgraded speed to ${player.moveSpeed}`);
+        if (player && tm && tm.ownerId === client.sessionId) {
+            if (player.coins >= tm.upgradeCost) {
+                player.coins -= tm.upgradeCost;
+                tm.level += 1;
+                // Double the cost for the next level
+                tm.upgradeCost = Math.floor(tm.upgradeCost * 2); 
             }
         }
     });
@@ -418,15 +420,61 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
           }
       });
 
-      // 4. Treadmill Logic (Safe farming: 2 coins per second)
+      // 4. Treadmill Logic
       this.state.treadmills.forEach(tm => {
           if (tm.occupantId !== "" && giveCoins) {
               const p = this.state.players.get(tm.occupantId);
-              if (p) p.coins += 2; 
+              if (p) {
+                  // Gives huge speed boosts to match the new Roblox stat scaling
+                  p.moveSpeed += 50 + (tm.level * 50); 
+              }
           }
       });
   }
 
+  // 2. Update MyRoom.ts (Server)
+
+// A. Update Treadmill Spawning in onCreate()
+    this.basePositions.forEach((basePos, index) => {
+        const tm = new Treadmill();
+        tm.id = "treadmill_" + index;
+        tm.x = basePos.x;
+        tm.y = -0.8; 
+        tm.z = basePos.z + 30;
+        tm.ownerId = ""; 
+        tm.level = 1;
+        tm.upgradeCost = 50;
+        this.state.treadmills.set(tm.id, tm);
+    });
+
+// B. Replace the old "upgrade_speed" handler in onCreate() with this:
+    this.onMessage("upgrade_treadmill", (client, data) => {
+        const player = this.state.players.get(client.sessionId);
+        const tm = this.state.treadmills.get(data.id);
+
+        if (player && tm && tm.ownerId === client.sessionId) {
+            if (player.coins >= tm.upgradeCost) {
+                player.coins -= tm.upgradeCost;
+                tm.level += 1;
+                // Double the cost for the next level
+                tm.upgradeCost = Math.floor(tm.upgradeCost * 2); 
+            }
+        }
+    });
+
+// C. Update Treadmill Logic inside updateGame()
+      // 4. Treadmill Logic (Speed farming instead of coins)
+      this.state.treadmills.forEach(tm => {
+          if (tm.occupantId !== "" && giveCoins) {
+              const p = this.state.players.get(tm.occupantId);
+              if (p) {
+                  // Gives huge speed boosts to match the new Roblox stat scaling
+                  p.moveSpeed += 50 + (tm.level * 50); 
+              }
+          }
+      });
+
+// D. Assign/Remove Ownership in onJoin & onLeave
   onJoin (client: Client, options: any) {
     const player = new Player();
     player.baseIndex = this.availableBases.shift() ?? 0; 
@@ -435,12 +483,25 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
     player.x = spawnPos.x;
     player.z = spawnPos.z;
 
+    const tm = this.state.treadmills.get("treadmill_" + player.baseIndex);
+    if (tm) tm.ownerId = client.sessionId;
+
     this.state.players.set(client.sessionId, player);
   }
 
   onLeave (client: Client, code?: number) {
     const player = this.state.players.get(client.sessionId);
-    if (player) this.availableBases.push(player.baseIndex);
+    if (player) {
+        this.availableBases.push(player.baseIndex);
+        
+        const tm = this.state.treadmills.get("treadmill_" + player.baseIndex);
+        if (tm) {
+            tm.ownerId = "";
+            tm.occupantId = "";
+            tm.level = 1;
+            tm.upgradeCost = 50;
+        }
+    }
     
     this.state.eggs.forEach((e) => {
         if (e.carrierId === client.sessionId) {

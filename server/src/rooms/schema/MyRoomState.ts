@@ -65,6 +65,9 @@ export class Treadmill extends Schema {
     @type("number") y: number = 0;
     @type("number") z: number = 0;
     @type("string") occupantId: string = "";
+    @type("string") ownerId: string = ""; 
+    @type("number") level: number = 1; 
+    @type("number") upgradeCost: number = 50; 
 }
 
 export class MyRoomState extends Schema {
