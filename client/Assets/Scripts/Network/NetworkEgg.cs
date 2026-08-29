@@ -20,7 +20,14 @@ public class NetworkEgg : MonoBehaviour
         }
         if (TryGetComponent(out Collider c)) c.enabled = isVisible;
 
-        if (!isVisible) return;
+        // Declare the variable ONCE here
+        Vector3 targetPosition = new Vector3(serverState.x, serverState.y, serverState.z);
+        
+        if (!isVisible) 
+        {
+            transform.position = targetPosition; 
+            return; 
+        }
 
         // 1. Toggle HUD Logic
         if (NetworkManager.Instance != null && NetworkManager.Instance.room != null)
@@ -47,7 +54,8 @@ public class NetworkEgg : MonoBehaviour
             GameObject carrier = NetworkManager.Instance.GetSpawnedPlayer(serverState.carrierId);
             if (carrier != null)
             {
-                Vector3 targetPosition = carrier.transform.position + (Vector3.up * holdHeightOffset);
+                // Removed "Vector3" to reassign the existing variable
+                targetPosition = carrier.transform.position + (Vector3.up * holdHeightOffset);
                 
                 // Instantly snap to the local player to hide network delay
                 if (serverState.carrierId == NetworkManager.Instance.room.SessionId)
@@ -63,7 +71,6 @@ public class NetworkEgg : MonoBehaviour
         }
         else // state 0 (Ground) or state 2 (Hatching)
         {
-            Vector3 targetPosition = new Vector3(serverState.x, serverState.y, serverState.z);
             transform.position = Vector3.Lerp(transform.position, targetPosition, Time.deltaTime * 10f);
         }
     }
