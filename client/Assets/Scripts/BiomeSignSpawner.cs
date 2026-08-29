@@ -8,7 +8,7 @@ public class BiomeSignSpawner : MonoBehaviour
     private readonly int[] biomeCenters = { 100, 200, 300, 400, 500, 600, 700, 800 };
     
     // Hardcoded Roblox-style massive numbers
-    private readonly string[] recommendedSpeedTexts = { "900", "10K", "40K", "170K", "400K", "4M", "18M", "700M" };
+    private readonly string[] recommendedSpeedTexts = { "1K", "5K", "10K", "25K", "40K", "100k", "300k", "1M" };
 
     void Start()
     {

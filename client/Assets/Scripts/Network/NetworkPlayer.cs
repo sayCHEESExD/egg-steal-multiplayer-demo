@@ -1,11 +1,18 @@
 using UnityEngine;
 using Colyseus.Schema;
+using TMPro;
 
 public class NetworkPlayer : MonoBehaviour
 {
     [Header("Settings")]
     public Animator animator;
     public float rotationSpeed = 15f;
+
+    [Header("UI Popups")]
+    public TMP_Text speedPopupText;
+    private float lastMoveSpeed = -1f;
+    private float popupTimer = 0f;
+    private Vector3 popupStartLocalPos = new Vector3(0, 4.0f, 0);
     
     [HideInInspector] public bool isLocalPlayer = false;
     [HideInInspector] public Player serverState;
@@ -41,6 +48,7 @@ public class NetworkPlayer : MonoBehaviour
         {
             HandleLocalMovement();
             HandleUpgrades();
+            HandleSpeedPopup();
             
             if (serverState != null && UIManager.Instance != null)
             {
@@ -369,6 +377,53 @@ public class NetworkPlayer : MonoBehaviour
         if (!string.IsNullOrEmpty(closestPetId))
         {
             NetworkManager.Instance.room.Send("sell_pet", new { petId = closestPetId });
+        }
+    }
+    private void HandleSpeedPopup()
+    {
+        if (serverState == null || speedPopupText == null) return;
+
+        // Initialize tracking
+        if (lastMoveSpeed < 0) lastMoveSpeed = serverState.moveSpeed;
+
+        // Detect if the server increased our speed
+        if (serverState.moveSpeed > lastMoveSpeed)
+        {
+            float gained = serverState.moveSpeed - lastMoveSpeed;
+            
+            // Use TMP rich text for the sprite. Change '0' to the index of your speed icon.
+            speedPopupText.text = $"<sprite=0> +{gained}"; 
+            
+            speedPopupText.color = new Color(0.2f, 0.8f, 1f, 1f); // Cyan
+            speedPopupText.transform.localPosition = popupStartLocalPos;
+            popupTimer = 1f; // Display for 1 second
+            
+            lastMoveSpeed = serverState.moveSpeed;
+        }
+        else if (serverState.moveSpeed < lastMoveSpeed)
+        {
+            lastMoveSpeed = serverState.moveSpeed; // Reset if stats drop
+        }
+
+        // Animate the popup (Float up and fade out)
+        if (popupTimer > 0)
+        {
+            popupTimer -= Time.deltaTime;
+            speedPopupText.transform.localPosition += Vector3.up * Time.deltaTime * 1.5f;
+            
+            Color c = speedPopupText.color;
+            c.a = popupTimer; // Fades alpha from 1 to 0
+            speedPopupText.color = c;
+
+            // Billboard text to always face the camera
+            if (Camera.main != null)
+            {
+                speedPopupText.transform.rotation = Camera.main.transform.rotation;
+            }
+        }
+        else
+        {
+            speedPopupText.text = ""; // Hide completely when timer is done
         }
     }
 }

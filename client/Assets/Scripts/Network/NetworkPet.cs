@@ -1,4 +1,5 @@
 using UnityEngine;
+using TMPro; 
 
 public class NetworkPet : MonoBehaviour
 {
@@ -11,15 +12,20 @@ public class NetworkPet : MonoBehaviour
     [Header("Animation")]
     public Animator animator;
 
+    [Header("UI Sign")]
+    public TMP_Text sellSignText; 
+
     private float nextSoundTime;
     private bool uiInitialized = false;
+    private Transform localPlayerTransform; 
+    private Camera mainCamera; // Cache camera for performance
 
     private void Start()
     {
         if (audioSource == null) audioSource = GetComponent<AudioSource>();
-        
         if (animator == null) animator = GetComponent<Animator>();
-
+        
+        mainCamera = Camera.main;
         nextSoundTime = Time.time + Random.Range(3f, 10f);
     }
 
@@ -27,7 +33,6 @@ public class NetworkPet : MonoBehaviour
     {
         if (serverState == null) return;
 
-        // 1. Initialize UI using the new PetUI script once the server state is available
         if (!uiInitialized)
         {
             PetUI ui = GetComponentInChildren<PetUI>();
@@ -36,6 +41,51 @@ public class NetworkPet : MonoBehaviour
                 ui.SetupUI((int)serverState.biomeIndex);
             }
             uiInitialized = true;
+        }
+
+        if (localPlayerTransform == null)
+        {
+            NetworkPlayer[] players = FindObjectsByType<NetworkPlayer>(FindObjectsSortMode.None);
+            foreach (var p in players)
+            {
+                if (p.isLocalPlayer)
+                {
+                    localPlayerTransform = p.transform;
+                    break;
+                }
+            }
+        }
+
+        // --- UI PROMPT LOGIC ---
+        if (sellSignText != null && NetworkManager.Instance != null && NetworkManager.Instance.room != null)
+        {
+            // Force the text to always face the camera (Billboard effect)
+            if (mainCamera != null)
+            {
+                sellSignText.transform.rotation = mainCamera.transform.rotation;
+            }
+
+            if (serverState.ownerId == NetworkManager.Instance.room.SessionId && localPlayerTransform != null)
+            {
+                float distance = Vector2.Distance(
+                    new Vector2(transform.position.x, transform.position.z), 
+                    new Vector2(localPlayerTransform.position.x, localPlayerTransform.position.z)
+                );
+
+                if (distance < 4f)
+                {
+                    float sellValue = 50 * (serverState.biomeIndex + 1);
+                    sellSignText.text = $"<color=yellow>+{sellValue} Coins</color>\n[X] Sell";
+                }
+                else
+                {
+                    sellSignText.text = ""; 
+                }
+            }
+            else
+            {
+                sellSignText.text = ""; 
+            }
         }
 
         // 2. Movement Calculations
