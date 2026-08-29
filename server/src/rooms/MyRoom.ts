@@ -85,9 +85,14 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
             
             if (Math.sqrt(dx * dx + dz * dz) < 3.0) {
                 tm.occupantId = client.sessionId;
-                player.x = tm.x; 
+                
+                // Adjust these offset values (+ or -) until the player lands exactly on the belt
+                player.x = tm.x + 1.5; 
+                player.y = 0.5; // Elevate slightly so feet touch the belt
                 player.z = tm.z;
-                player.rotY = 0; 
+                
+                // Change to 90, -90, or 180 to make the player face the treadmill's console
+                player.rotY = 90; 
                 player.velocityY = 0; 
             }
         }
