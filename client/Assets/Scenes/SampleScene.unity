@@ -7320,7 +7320,7 @@ GameObject:
   - component: {fileID: 805574587}
   - component: {fileID: 805574586}
   m_Layer: 5
-  m_Name: Text (TMP)
+  m_Name: ResetTime
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -16841,6 +16841,7 @@ GameObject:
   - component: {fileID: 1895050236}
   - component: {fileID: 1895050235}
   - component: {fileID: 1895050240}
+  - component: {fileID: 1895050241}
   m_Layer: 5
   m_Name: Canvas
   m_TagString: Untagged
@@ -16964,6 +16965,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   contentContainer: {fileID: 591756436}
   rowPrefab: {fileID: 7784517905535023703, guid: a4140787fd9dbb544bd9f194fa2249f2, type: 3}
+--- !u!114 &1895050241
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1895050234}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a826d00249c141744a75a95490afa38e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  timerText: {fileID: 805574586}
 --- !u!1 &1904371208
 GameObject:
   m_ObjectHideFlags: 0

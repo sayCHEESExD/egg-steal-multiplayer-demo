@@ -260,6 +260,7 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
                     egg.hatchProgress = 0;
                 }
             });
+        } // <-- MISSING BRACE WAS HERE
         
       // 0. Process Player Gravity and Jumping Physics
       this.state.players.forEach(player => {
