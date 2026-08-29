@@ -102,7 +102,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Sample text
+  m_text: 
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2100000, guid: 7d2c7841b6821ca4bb812104bf8feb97, type: 2}
@@ -277,6 +277,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 644474217881eaf42a35ef70cfe96d40, type: 3}
       insertIndex: -1
       addedObject: {fileID: -4409177435944241594}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 644474217881eaf42a35ef70cfe96d40, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3337909423149513036}
   m_SourcePrefab: {fileID: 100100000, guid: 644474217881eaf42a35ef70cfe96d40, type: 3}
 --- !u!4 &18172228021570945 stripped
 Transform:
@@ -354,6 +357,31 @@ CapsuleCollider:
   m_Height: 1
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!143 &3337909423149513036
+CharacterController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 795834380650059579}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Height: 2
+  m_Radius: 0.5
+  m_SlopeLimit: 45
+  m_StepOffset: 0.3
+  m_SkinWidth: 0.08
+  m_MinMoveDistance: 0.001
+  m_Center: {x: 0, y: 1, z: 0}
 --- !u!95 &6242168712111921147 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: 644474217881eaf42a35ef70cfe96d40, type: 3}

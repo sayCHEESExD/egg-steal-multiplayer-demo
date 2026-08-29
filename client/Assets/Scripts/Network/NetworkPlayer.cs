@@ -19,6 +19,14 @@ public class NetworkPlayer : MonoBehaviour
 
     private int lastBiomeIndex = -1;
     private float treadmillCooldown = 0f;
+
+    private float networkSendRate = 0.05f; // 1 / 20 = 20 times per second
+    private float nextSendTime = 0f;
+
+    private Vector3 knockbackVelocity = Vector3.zero;
+    private bool knockbackRegistered = false;
+
+    private CharacterController characterController;
     
     private readonly string[] biomeNames = {
         "Plains  <sprite=0>",
@@ -33,6 +41,7 @@ public class NetworkPlayer : MonoBehaviour
     
     private void Start()
     {
+        characterController = GetComponent<CharacterController>();
         if (animator == null) animator = GetComponent<Animator>();
         if (animator == null) animator = GetComponentInChildren<Animator>();
 
@@ -46,16 +55,18 @@ public class NetworkPlayer : MonoBehaviour
     {
         if (isLocalPlayer)
         {
-            HandleLocalMovement();
-            HandleUpgrades();
-            HandleSpeedPopup();
-            
-            if (serverState != null && UIManager.Instance != null)
+            // --- NEW: Register Knockback Listener ---
+            if (!knockbackRegistered && NetworkManager.Instance != null && NetworkManager.Instance.room != null)
             {
-                UIManager.Instance.UpdateStats(serverState.coins, serverState.moveSpeed);
+                NetworkManager.Instance.room.OnMessage<KnockbackMessage>("knockback", (msg) => {
+                    knockbackVelocity = new Vector3(msg.x, 0, msg.z);
+                });
+                knockbackRegistered = true;
             }
+            // ----------------------------------------
 
-            CheckBiomePosition(); 
+            HandleLocalMovement();
+            HandleSpeedPopup();
         }
         else
         {
@@ -213,15 +224,12 @@ public class NetworkPlayer : MonoBehaviour
             animator.SetFloat("Speed", inputMagnitude);
             animator.speed = Mathf.Clamp(actualUnitySpeed / 10f, 1f, 4f); 
         }
-        
-        if (serverState != null)
-        {
-            Vector3 pos = transform.position;
-            pos.y = Mathf.Lerp(pos.y, serverState.y, Time.deltaTime * 15f);
-            transform.position = pos;
-        }
 
         // 4. Camera-Relative Movement
+        // --- NEW COMBINED MOVEMENT BLOCK ---
+        Vector3 finalMove = Vector3.zero;
+
+        // 1. Calculate Horizontal Movement (Player Input)
         if (horizontal != 0 || vertical != 0)
         {
             Vector3 camForward = Camera.main.transform.forward;
@@ -232,18 +240,53 @@ public class NetworkPlayer : MonoBehaviour
             camRight.Normalize();
 
             Vector3 moveDir = (camForward * vertical + camRight * horizontal).normalized;
-            
-            transform.position += moveDir * actualUnitySpeed * Time.deltaTime;
+            finalMove += moveDir * actualUnitySpeed * Time.deltaTime;
 
             Quaternion targetRotation = Quaternion.LookRotation(moveDir);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * rotationSpeed);
+        }
 
+        // 2. Calculate Vertical Movement (Server Gravity / Jump)
+        if (serverState != null)
+        {
+            float targetY = serverState.y;
+            float currentY = transform.position.y;
+            float newY = Mathf.Lerp(currentY, targetY, Time.deltaTime * 15f);
+            
+            finalMove.y = newY - currentY; 
+        }
+
+        // --- NEW: ADD KNOCKBACK DECAY ---
+        if (knockbackVelocity.magnitude > 0.1f)
+        {
+            finalMove += knockbackVelocity * Time.deltaTime;
+            
+            // Rapidly slow down the knockback force over time
+            knockbackVelocity = Vector3.Lerp(knockbackVelocity, Vector3.zero, Time.deltaTime * 4f);
+        }
+        // --------------------------------
+
+        // 3. Apply ALL movement simultaneously
+        if (characterController != null)
+        {
+            characterController.Move(finalMove);
+        }
+        else
+        {
+            transform.position += finalMove;
+        }
+
+        // 4. Rate-Limited Network Sending
+        if ((horizontal != 0 || vertical != 0) && Time.time >= nextSendTime)
+        {
+            // Server only cares about X and Z for movement anyway
             NetworkManager.Instance.room.Send("move", new { 
                 x = transform.position.x, 
-                y = transform.position.y, 
                 z = transform.position.z,
                 rotY = transform.eulerAngles.y
             });
+            
+            nextSendTime = Time.time + networkSendRate;
         }
     }
 
@@ -426,4 +469,9 @@ public class NetworkPlayer : MonoBehaviour
             speedPopupText.text = ""; // Hide completely when timer is done
         }
     }
+}
+public class KnockbackMessage 
+{
+    public float x;
+    public float z;
 }
