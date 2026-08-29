@@ -73,6 +73,16 @@ public class NetworkPlayer : MonoBehaviour
             // 3. Movement and Popups
             HandleLocalMovement();
             HandleSpeedPopup();
+
+            bool inBiome = transform.position.z >= 50f; 
+        
+            // If they are in the biome AND carrying an egg, the guards are actively targeting them
+            bool isChased = inBiome && StealHUD.IsCarryingEgg; 
+
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.UpdateMusicState(inBiome, isChased);
+            }
         }
         else
         {
@@ -387,10 +397,12 @@ public class NetworkPlayer : MonoBehaviour
     private void CheckBiomePosition()
     {
         // Tell the AudioManager if we are outside the safe zone (Z >= 50)
-        bool isInBiome = transform.position.z >= 50f;
+        bool inBiome = transform.position.z >= 50f; 
+        bool isChased = inBiome && StealHUD.IsCarryingEgg; 
+
         if (AudioManager.Instance != null)
         {
-            AudioManager.Instance.ToggleBiomeMusic(isInBiome);
+            AudioManager.Instance.UpdateMusicState(inBiome, isChased);
         }
 
         int currentBiome = Mathf.FloorToInt((transform.position.z - 50f) / 100f);
