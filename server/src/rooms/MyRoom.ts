@@ -83,12 +83,12 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
             const dx = player.x - tm.x;
             const dz = player.z - tm.z;
             
-            // Tight distance check
-            if (Math.sqrt(dx * dx + dz * dz) < 1.2) {
+            if (Math.sqrt(dx * dx + dz * dz) < 3.0) {
                 tm.occupantId = client.sessionId;
                 player.x = tm.x; 
                 player.z = tm.z;
                 player.rotY = 0; 
+                player.velocityY = 0; 
             }
         }
     });

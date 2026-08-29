@@ -55,7 +55,7 @@ public class NetworkPlayer : MonoBehaviour
     {
         if (isLocalPlayer)
         {
-            // --- NEW: Register Knockback Listener ---
+            // 1. Knockback Listener
             if (!knockbackRegistered && NetworkManager.Instance != null && NetworkManager.Instance.room != null)
             {
                 NetworkManager.Instance.room.OnMessage<KnockbackMessage>("knockback", (msg) => {
@@ -63,8 +63,14 @@ public class NetworkPlayer : MonoBehaviour
                 });
                 knockbackRegistered = true;
             }
-            // ----------------------------------------
 
+            // 2. RESTORE YOUR MISSING UI CODE HERE
+            if (serverState != null)
+            {
+               UIManager.Instance.UpdateStats(serverState.coins, serverState.moveSpeed);
+            }
+
+            // 3. Movement and Popups
             HandleLocalMovement();
             HandleSpeedPopup();
         }
@@ -143,7 +149,8 @@ public class NetworkPlayer : MonoBehaviour
             Vector2 treadmillFlatPos = new Vector2(ownedTreadmillPos.x, ownedTreadmillPos.z);
             float dist = Vector2.Distance(playerFlatPos, treadmillFlatPos);
             
-            if (dist < 0.8f && treadmillCooldown <= 0f && transform.position.y < 0.5f) 
+            // Expanded distance to 1.5f and relaxed Y constraint to 1.5f
+            if (dist < 1.5f && treadmillCooldown <= 0f && transform.position.y < 1.5f) 
             {
                 // Use a strict Dictionary to prevent MsgPack serialization drops
                 var payload = new System.Collections.Generic.Dictionary<string, object>
@@ -152,7 +159,7 @@ public class NetworkPlayer : MonoBehaviour
                 };
                 NetworkManager.Instance.room.Send("mount_treadmill", payload);
                 
-                treadmillCooldown = 0.5f; 
+                treadmillCooldown = 1.0f; 
             }
         }
 
@@ -167,7 +174,19 @@ public class NetworkPlayer : MonoBehaviour
             
             if (serverState != null)
             {
-                transform.position = new Vector3(serverState.x, serverState.y, serverState.z);
+                Vector3 snapPos = new Vector3(serverState.x, serverState.y, serverState.z);
+                
+                // Temporarily disable Character Controller so it doesn't fight the snap
+                if (characterController != null)
+                {
+                    characterController.enabled = false;
+                    transform.position = snapPos;
+                    characterController.enabled = true;
+                }
+                else
+                {
+                    transform.position = snapPos;
+                }
                 
                 // Force rotation dead forward (0 degrees) while running
                 transform.rotation = Quaternion.Euler(0f, 0f, 0f); 
