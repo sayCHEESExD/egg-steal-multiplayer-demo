@@ -188,8 +188,8 @@ public class NetworkPlayer : MonoBehaviour
                     transform.position = snapPos;
                 }
                 
-                // Force rotation dead forward (0 degrees) while running
-                transform.rotation = Quaternion.Euler(0f, 0f, 0f); 
+                // Read the exact rotation from the server instead of forcing 0f
+                transform.rotation = Quaternion.Euler(0f, serverState.rotY, 0f);
             }
 
             if (Input.GetKeyDown(KeyCode.Space))

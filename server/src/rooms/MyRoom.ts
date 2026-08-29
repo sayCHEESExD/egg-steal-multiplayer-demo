@@ -128,7 +128,15 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
 
     this.onMessage("move", (client, data) => {
         const player = this.state.players.get(client.sessionId);
-        if (player) {
+        
+        // Check if player is currently mounted
+        let isOnTreadmill = false;
+        this.state.treadmills.forEach(tm => {
+            if (tm.occupantId === client.sessionId) isOnTreadmill = true;
+        });
+
+        // Only process movement if they are NOT on a treadmill
+        if (player && !isOnTreadmill) {
             player.x = data.x;
             player.z = data.z;
             if (data.rotY !== undefined) player.rotY = data.rotY;
