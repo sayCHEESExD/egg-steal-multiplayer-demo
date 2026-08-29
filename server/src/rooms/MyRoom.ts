@@ -92,7 +92,7 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
                 player.z = tm.z;
                 
                 // Change to 90, -90, or 180 to make the player face the treadmill's console
-                player.rotY = 90; 
+                player.rotY = 0; 
                 player.velocityY = 0; 
             }
         }
@@ -354,7 +354,7 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
                   const magnitude = Math.sqrt(dx * dx + dz * dz);
                   const normX = magnitude > 0 ? dx / magnitude : 1;
                   const normZ = magnitude > 0 ? dz / magnitude : 0;
-                  const force = guard.speed * 2.5; 
+                  const force = guard.speed * 8.0; 
 
                   // Find the client BEFORE clearing the carrierId
                   const targetClient = this.clients.find(c => c.sessionId === stolenEgg.carrierId);
