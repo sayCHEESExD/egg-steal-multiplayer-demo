@@ -335,30 +335,34 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
               const dist = Math.sqrt(dx * dx + dz * dz);
               
               if (dist < 2.5) {
+                  // --- NEW: SERVER KNOCKBACK LOGIC ---
+                  targetPlayer.velocityY = 15 + (guard.speed * 0.2);
+
+                  const magnitude = Math.sqrt(dx * dx + dz * dz);
+                  const normX = magnitude > 0 ? dx / magnitude : 1;
+                  const normZ = magnitude > 0 ? dz / magnitude : 0;
+                  const force = guard.speed * 2.5; 
+
+                  // Find the client BEFORE clearing the carrierId
+                  const targetClient = this.clients.find(c => c.sessionId === stolenEgg.carrierId);
+                  if (targetClient) {
+                      targetClient.send("knockback", { x: normX * force, z: normZ * force });
+                  }
+
                   // Reset the egg
                   stolenEgg.carrierId = "";
                   stolenEgg.state = 0; 
                   stolenEgg.x = stolenEgg.baseX;
                   stolenEgg.y = 0.5;
                   stolenEgg.z = stolenEgg.baseZ;
-
-                  // --- NEW: SERVER KNOCKBACK LOGIC ---
-                  // 1. Pop the player up into the air (scales slightly with speed)
-                  targetPlayer.velocityY = 15 + (guard.speed * 0.2);
-
-                  // 2. Calculate horizontal pushback direction
-                  const magnitude = Math.sqrt(dx * dx + dz * dz);
-                  const normX = magnitude > 0 ? dx / magnitude : 1;
-                  const normZ = magnitude > 0 ? dz / magnitude : 0;
+                  // -----------------------------------
                   
-                  // Scale horizontal force by guard speed
-                  const force = guard.speed * 2.5; 
-
-                  // 3. Send knockback data directly to the caught player
-                  const targetClient = this.clients.find(c => c.sessionId === egg.carrierId);
-                  if (targetClient) {
-                      targetClient.send("knockback", { x: normX * force, z: normZ * force });
-                  }
+              } else if (dist > 0.1) {
+                  const moveAmt = guard.speed * (deltaTime / 1000);
+                  guard.x += (dx / dist) * moveAmt;
+                  guard.z += (dz / dist) * moveAmt;
+                  guard.rotY = Math.atan2(dx, dz) * (180 / Math.PI);
+              }
           } else {
               const dx = guard.baseX - guard.x; 
               const dz = guard.baseZ - guard.z;
