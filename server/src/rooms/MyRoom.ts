@@ -87,7 +87,7 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
                 tm.occupantId = client.sessionId;
                 
                 // Adjust these offset values (+ or -) until the player lands exactly on the belt
-                player.x = tm.x + 1.5; 
+                player.x = tm.x; 
                 player.y = 0.5; // Elevate slightly so feet touch the belt
                 player.z = tm.z;
                 
