@@ -243,6 +243,24 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
   }
 
   updateGame(deltaTime: number) {
+
+    this.state.eggTimer -= (deltaTime / 1000);
+        if (this.state.eggTimer <= 0) {
+            this.state.eggTimer = 300; // Reset to 5 minutes
+            
+            this.state.eggs.forEach(egg => {
+                // Only reset eggs that have been consumed (state 3) or are sitting uncarried (state 0)
+                if (egg.state === 3 || egg.state === 0) {
+                    egg.state = 0;
+                    egg.carrierId = "";
+                    egg.ownerId = "";
+                    egg.x = egg.baseX;
+                    egg.y = 0.5;
+                    egg.z = egg.baseZ;
+                    egg.hatchProgress = 0;
+                }
+            });
+        
       // 0. Process Player Gravity and Jumping Physics
       this.state.players.forEach(player => {
           if (player.velocityY === undefined) {
@@ -283,9 +301,10 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
                   }
 
                   try {
-                      egg.state = 0;
+                      egg.state = 3; // 3 = Consumed / Waiting for 5-min timer
                       egg.ownerId = "";
                       egg.x = egg.baseX;
+                      egg.y = -50; // Hide underground
                       egg.z = egg.baseZ;
                   } catch (e) {
                       console.log(`[HATCH ERROR] Failed to reset egg: ${e instanceof Error ? e.message : String(e)}`);

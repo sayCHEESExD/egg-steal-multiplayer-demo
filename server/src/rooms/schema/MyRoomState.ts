@@ -79,4 +79,5 @@ export class MyRoomState extends Schema {
     @type({ map: Guard }) guards = new MapSchema<Guard>();
     @type({ map: Pet }) pets = new MapSchema<Pet>(); 
     @type({ map: Treadmill }) treadmills = new MapSchema<Treadmill>();
+    @type("number") eggTimer: number = 300;
 }

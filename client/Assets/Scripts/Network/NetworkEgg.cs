@@ -13,6 +13,15 @@ public class NetworkEgg : MonoBehaviour
     {
         if (serverState == null) return;
 
+        bool isVisible = serverState.state != 3;
+        foreach (Renderer r in GetComponentsInChildren<Renderer>()) 
+        {
+            r.enabled = isVisible;
+        }
+        if (TryGetComponent(out Collider c)) c.enabled = isVisible;
+
+        if (!isVisible) return;
+
         // 1. Toggle HUD Logic
         if (NetworkManager.Instance != null && NetworkManager.Instance.room != null)
         {
